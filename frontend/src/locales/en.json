@@ -1,0 +1,96 @@
+{
+  "app": {
+    "title": "Dream To",
+    "subtitle": "Maintenance Knowledge Base"
+  },
+  "nav": {
+    "equipment": "Equipment",
+    "documents": "Documents",
+    "techCards": "Tech Cards",
+    "instructions": "Instructions",
+    "courses": "Training",
+    "competencies": "Competencies",
+    "knowledge": "Help",
+    "admin": "Administration"
+  },
+  "status": {
+    "draft": "Draft",
+    "pending_approval": "Pending Approval",
+    "published": "Published",
+    "archived": "Archived",
+    "assigned": "Assigned",
+    "in_progress": "In Progress",
+    "completed": "Completed",
+    "failed": "Failed",
+    "pending": "Pending",
+    "processing": "Processing"
+  },
+  "maintenance": {
+    "annual": "Annual",
+    "semi_annual": "Semi-Annual",
+    "quarterly": "Quarterly",
+    "monthly": "Monthly",
+    "weekly": "Weekly",
+    "daily": "Daily"
+  },
+  "common": {
+    "search": "Search",
+    "filter": "Filter",
+    "save": "Save",
+    "cancel": "Cancel",
+    "create": "Create",
+    "edit": "Edit",
+    "delete": "Delete",
+    "upload": "Upload",
+    "approve": "Approve",
+    "submit": "Submit for Approval",
+    "loading": "Loading...",
+    "noData": "No data"
+  },
+  "equipment": {
+    "title": "Equipment Database",
+    "name": "Name",
+    "serialName": "Serial Name",
+    "description": "Description",
+    "status": "Status",
+    "relations": "Relations",
+    "activeOnly": "Active only",
+    "createTitle": "New Equipment",
+    "editTitle": "Edit Equipment",
+    "loadError": "Failed to load equipment list",
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "instructions": {
+    "title": "Work Instructions",
+    "steps": "Steps",
+    "keyPoints": "Key Points",
+    "reasons": "Reasons",
+    "versions": "Versions"
+  },
+  "documents": {
+    "title": "Factory Documentation",
+    "uploadTitle": "Upload Document",
+    "equipment": "Equipment",
+    "selectEquipment": "Select equipment",
+    "allEquipment": "All equipment",
+    "file": "File",
+    "fileHint": "PDF, DOCX, TXT",
+    "colTitle": "Title",
+    "colEquipment": "Equipment",
+    "colSize": "Size",
+    "colStatus": "Status",
+    "colAi": "AI",
+    "colVersion": "Version",
+    "download": "Download",
+    "loadError": "Failed to load documents",
+    "aiProcess": "AI Process",
+    "aiRetry": "Retry AI",
+    "aiProcessing": "Processing..."
+  },
+  "knowledge": {
+    "title": "Knowledge Base",
+    "placeholder": "Ask a maintenance question...",
+    "ask": "Ask"
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "app": {
+    "title": "Dream To",
+    "subtitle": "База знаний по техобслуживанию"
+  },
+  "nav": {
+    "equipment": "Оборудование",
+    "documents": "Документы",
+    "techCards": "Тех. карты",
+    "instructions": "Инструкции",
+    "courses": "Обучение",
+    "competencies": "Компетенции",
+    "knowledge": "Справка",
+    "admin": "Администрирование"
+  },
+  "status": {
+    "draft": "Черновик",
+    "pending_approval": "На утверждении",
+    "published": "Опубликована",
+    "archived": "Архив",
+    "assigned": "Назначен",
+    "in_progress": "В процессе",
+    "completed": "Завершён",
+    "failed": "Не пройден",
+    "pending": "Ожидает",
+    "processing": "Обработка"
+  },
+  "maintenance": {
+    "annual": "Годовое",
+    "semi_annual": "Полугодовое",
+    "quarterly": "Квартальное",
+    "monthly": "Месячное",
+    "weekly": "Недельное",
+    "daily": "Ежедневное"
+  },
+  "common": {
+    "search": "Поиск",
+    "filter": "Фильтр",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "create": "Создать",
+    "edit": "Редактировать",
+    "delete": "Удалить",
+    "upload": "Загрузить",
+    "approve": "Утвердить",
+    "submit": "На утверждение",
+    "loading": "Загрузка...",
+    "noData": "Нет данных"
+  },
+  "equipment": {
+    "title": "База оборудования",
+    "name": "Название",
+    "serialName": "Серийное название",
+    "description": "Описание",
+    "status": "Статус",
+    "relations": "Связи",
+    "activeOnly": "Только активные",
+    "createTitle": "Новое оборудование",
+    "editTitle": "Редактирование",
+    "loadError": "Не удалось загрузить список оборудования",
+    "active": "Активно",
+    "inactive": "Неактивно"
+  },
+  "instructions": {
+    "title": "Инструкции ТО",
+    "steps": "Шаги",
+    "keyPoints": "Ключевые моменты",
+    "reasons": "Причины",
+    "versions": "Версии"
+  },
+  "documents": {
+    "title": "Заводская документация",
+    "uploadTitle": "Загрузка документа",
+    "equipment": "Оборудование",
+    "selectEquipment": "Выберите оборудование",
+    "allEquipment": "Всё оборудование",
+    "file": "Файл",
+    "fileHint": "PDF, DOCX, TXT",
+    "colTitle": "Название",
+    "colEquipment": "Оборудование",
+    "colSize": "Размер",
+    "colStatus": "Статус",
+    "colAi": "AI",
+    "colVersion": "Версия",
+    "download": "Скачать",
+    "loadError": "Не удалось загрузить документы",
+    "aiProcess": "AI-обработка",
+    "aiRetry": "Повторить AI",
+    "aiProcessing": "Обработка..."
+  },
+  "knowledge": {
+    "title": "Справочная система",
+    "placeholder": "Задайте вопрос по техобслуживанию...",
+    "ask": "Спросить"
+  }
+}

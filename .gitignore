@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# Build
+dist/
+build/
+*.egg-info/
+.next/
+out/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs & temp
+*.log
+logs/
+tmp/
+uploads/
+storage/
+
+# Test & coverage
+.coverage
+htmlcov/
+.pytest_cache/
+coverage/
+
+# Database
+*.db
+*.sqlite3
+
+# Docker volumes
+data/

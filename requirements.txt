@@ -1,0 +1,5 @@
+# Локальная разработка: зависимости backend + ai-service в одном venv
+# Docker-образы по-прежнему используют backend/requirements.txt и ai-service/requirements.txt
+
+-r backend/requirements.txt
+-r ai-service/requirements.txt

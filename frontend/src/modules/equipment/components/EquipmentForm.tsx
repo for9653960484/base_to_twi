@@ -1,11 +1,11 @@
-import { FormEvent, useState, type CSSProperties } from 'react';
+import { FormEvent, useEffect, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Equipment } from '@/types';
 
 interface FormData {
   name: string;
-  serial_name?: string;
-  description?: string;
+  serial_name?: string | null;
+  description?: string | null;
 }
 
 interface Props {
@@ -21,13 +21,21 @@ export function EquipmentForm({ initial, loading, onClose, onSubmit }: Props) {
   const [serialName, setSerialName] = useState(initial?.serial_name ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
 
+  useEffect(() => {
+    setName(initial?.name ?? '');
+    setSerialName(initial?.serial_name ?? '');
+    setDescription(initial?.description ?? '');
+  }, [initial]);
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
+    const trimmedSerial = serialName.trim();
+    const trimmedDescription = description.trim();
     onSubmit({
       name: name.trim(),
-      serial_name: serialName.trim() || undefined,
-      description: description.trim() || undefined,
+      serial_name: trimmedSerial || (initial ? null : undefined),
+      description: trimmedDescription || (initial ? null : undefined),
     });
   };
 

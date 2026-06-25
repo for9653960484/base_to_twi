@@ -14,5 +14,9 @@ apiClient.interceptors.request.use((config) => {
   }
   const lang = localStorage.getItem('locale') || 'ru';
   config.headers['Accept-Language'] = lang;
+  // FormData: браузер сам выставит multipart boundary
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type'];
+  }
   return config;
 });

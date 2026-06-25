@@ -37,6 +37,8 @@ export function DocumentsPage() {
     },
   });
 
+  const [uploadError, setUploadError] = useState('');
+
   const uploadMutation = useMutation({
     mutationFn: async (formData: FormData) => {
       const { data } = await documentsApi.upload(formData);
@@ -45,7 +47,9 @@ export function DocumentsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['documents'] });
       setShowForm(false);
+      setUploadError('');
     },
+    onError: () => setUploadError(t('documents.uploadError')),
   });
 
   const actionMutation = useMutation({
@@ -111,7 +115,11 @@ export function DocumentsPage() {
         <DocumentUploadForm
           equipmentList={equipmentData ?? []}
           loading={uploadMutation.isPending}
-          onClose={() => setShowForm(false)}
+          error={uploadError}
+          onClose={() => {
+            setShowForm(false);
+            setUploadError('');
+          }}
           onSubmit={(formData) => uploadMutation.mutate(formData)}
         />
       )}

@@ -84,6 +84,7 @@
     "colVersion": "Version",
     "download": "Download",
     "loadError": "Failed to load documents",
+    "uploadError": "Failed to upload document. Check file type (PDF, DOCX, TXT) and try again.",
     "aiProcess": "AI Process",
     "aiRetry": "Retry AI",
     "aiProcessing": "Processing..."

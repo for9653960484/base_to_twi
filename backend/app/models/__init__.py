@@ -7,6 +7,7 @@ from app.models.relations import (
     TwiCourse,
     WorkInstruction,
 )
+from app.models.user import Role, User
 
 __all__ = [
     "Equipment",
@@ -18,4 +19,6 @@ __all__ = [
     "WorkInstruction",
     "TwiCourse",
     "EquipmentCompetency",
+    "Role",
+    "User",
 ]

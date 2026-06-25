@@ -27,8 +27,12 @@ export function EquipmentPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (formData: { name: string; serial_name?: string; description?: string }) => {
-      const { data } = await equipmentApi.create(formData);
+    mutationFn: async (formData: { name: string; serial_name?: string | null; description?: string | null }) => {
+      const { data } = await equipmentApi.create({
+        name: formData.name,
+        serial_name: formData.serial_name ?? undefined,
+        description: formData.description ?? undefined,
+      });
       return data;
     },
     onSuccess: () => {
@@ -45,6 +49,7 @@ export function EquipmentPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
       setEditing(null);
+      setShowForm(false);
     },
   });
 
@@ -103,6 +108,7 @@ export function EquipmentPage() {
 
       {showForm && (
         <EquipmentForm
+          key={editing?.id ?? 'new'}
           initial={editing}
           loading={createMutation.isPending || updateMutation.isPending}
           onClose={() => {

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Применить database/init/*.sql к локальному PostgreSQL. Запуск из корня репозитория."""
 
+import argparse
 import os
 import sys
 from pathlib import Path
@@ -14,17 +15,39 @@ load_dotenv(ROOT / ".env")
 INIT_DIR = ROOT / "database" / "init"
 
 
+def pgvector_available(cur) -> bool:
+    cur.execute(
+        "SELECT 1 FROM pg_available_extensions WHERE name = 'vector' LIMIT 1"
+    )
+    return cur.fetchone() is not None
+
+
+def schema_files(use_no_vector: bool) -> list[Path]:
+    files: list[Path] = []
+    for path in sorted(INIT_DIR.glob("*.sql")):
+        if path.name == "01_schema_no_vector.sql":
+            continue
+        if path.name == "01_schema.sql" and use_no_vector:
+            files.append(INIT_DIR / "01_schema_no_vector.sql")
+        else:
+            files.append(path)
+    return files
+
+
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Инициализация схемы БД dream_to")
+    parser.add_argument(
+        "--no-vector",
+        action="store_true",
+        help="Схема без pgvector (векторный поиск и AI Q&A недоступны)",
+    )
+    args = parser.parse_args()
+
     host = os.getenv("POSTGRES_HOST", "localhost")
     port = int(os.getenv("POSTGRES_PORT", "5432"))
     db = os.getenv("POSTGRES_DB", "dream_to")
     user = os.getenv("POSTGRES_USER", "dream_to")
     password = os.getenv("POSTGRES_PASSWORD", "dream_to_secret")
-
-    sql_files = sorted(INIT_DIR.glob("*.sql"))
-    if not sql_files:
-        print(f"Нет SQL-файлов в {INIT_DIR}", file=sys.stderr)
-        return 1
 
     print(f"Подключение к {user}@{host}:{port}/{db} ...")
     try:
@@ -42,19 +65,32 @@ def main() -> int:
     conn.autocommit = True
     cur = conn.cursor()
 
+    use_no_vector = args.no_vector
+    if not use_no_vector and not pgvector_available(cur):
+        use_no_vector = True
+        print("  [info] pgvector not found, using 01_schema_no_vector.sql")
+        print("         equipment/documents OK; AI Q&A needs pgvector later")
+
+    sql_files = schema_files(use_no_vector)
+    if not sql_files:
+        print(f"Нет SQL-файлов в {INIT_DIR}", file=sys.stderr)
+        return 1
+
+    had_errors = False
     for path in sql_files:
-        print(f"  → {path.name}")
+        print(f"  -> {path.name}")
         sql = path.read_text(encoding="utf-8")
         try:
             cur.execute(sql)
         except psycopg2.Error as exc:
-            print(f"  ⚠ {path.name}: {exc.pgerror or exc}")
+            had_errors = True
+            print(f"  WARN {path.name}: {exc.pgerror or exc}")
             # Повторный запуск на существующей схеме — ожидаемы ошибки «already exists»
 
     cur.close()
     conn.close()
     print("Готово.")
-    return 0
+    return 1 if had_errors else 0
 
 
 if __name__ == "__main__":

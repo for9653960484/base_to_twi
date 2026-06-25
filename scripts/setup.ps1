@@ -29,6 +29,7 @@ Write-Host "Установка Python-зависимостей ..."
 New-Item -ItemType Directory -Force -Path storage | Out-Null
 
 Write-Host "Установка frontend (npm) ..."
+. (Join-Path $PSScriptRoot "_ensure-path.ps1")
 Push-Location frontend
 if (-not (Test-Path "node_modules")) { npm install }
 Pop-Location

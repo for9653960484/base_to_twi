@@ -11,15 +11,10 @@ export const documentsApi = {
 
   get: (id: string) => apiClient.get<Document>(`/documents/${id}`),
 
-  upload: (formData: FormData) =>
-    apiClient.post<Document>('/documents/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+  upload: (formData: FormData) => apiClient.post<Document>('/documents/upload', formData),
 
   uploadVersion: (id: string, formData: FormData) =>
-    apiClient.post<Document>(`/documents/${id}/versions`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+    apiClient.post<Document>(`/documents/${id}/versions`, formData),
 
   downloadUrl: (id: string) => {
     const base = apiClient.defaults.baseURL || '/api/v1';

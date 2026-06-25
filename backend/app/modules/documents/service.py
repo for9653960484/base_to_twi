@@ -151,10 +151,9 @@ class DocumentService:
             document.id, version.id, "created", created_by, "Document uploaded"
         )
         await self.db.flush()
-        await self.db.refresh(document, ["versions"])
 
-        eq_name = await self._equipment_name(equipment_id)
-        return _to_response(document, eq_name)
+        doc, eq_name = await self._get_with_equipment(document.id)
+        return _to_response(doc, eq_name)
 
     async def upload_new_version(
         self,
@@ -200,7 +199,8 @@ class DocumentService:
             doc.id, version.id, "updated", created_by, change_summary or "New version uploaded"
         )
         await self.db.flush()
-        await self.db.refresh(doc, ["versions"])
+
+        doc, eq_name = await self._get_with_equipment(doc.id)
         return _to_response(doc, eq_name)
 
     async def update(

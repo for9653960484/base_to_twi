@@ -14,4 +14,4 @@ foreach ($s in $scripts) {
     Start-Sleep -Milliseconds 500
 }
 
-Write-Host "Запущены 4 окна: backend :8000, ai :8001, celery worker, frontend :5173"
+Write-Host "Started 4 windows: backend :8000, ai :8001, celery worker, frontend :5173"

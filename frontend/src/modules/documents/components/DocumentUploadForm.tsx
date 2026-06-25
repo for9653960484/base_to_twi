@@ -5,13 +5,14 @@ import type { Equipment } from '@/types';
 interface Props {
   equipmentList: Equipment[];
   loading?: boolean;
+  error?: string;
   onClose: () => void;
   onSubmit: (formData: FormData) => void;
 }
 
 const ACCEPT = '.pdf,.docx,.doc,.txt,.md';
 
-export function DocumentUploadForm({ equipmentList, loading, onClose, onSubmit }: Props) {
+export function DocumentUploadForm({ equipmentList, loading, error, onClose, onSubmit }: Props) {
   const { t } = useTranslation();
   const [equipmentId, setEquipmentId] = useState('');
   const [title, setTitle] = useState('');
@@ -42,6 +43,12 @@ export function DocumentUploadForm({ equipmentList, loading, onClose, onSubmit }
     <div style={overlayStyle} onClick={onClose}>
       <form style={modalStyle} onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
         <h3 style={{ marginBottom: '1.25rem', fontWeight: 700 }}>{t('documents.uploadTitle')}</h3>
+
+        {error && (
+          <div style={{ color: 'var(--color-danger)', marginBottom: '1rem', fontSize: '0.9rem' }}>
+            {error}
+          </div>
+        )}
 
         <label style={labelStyle}>
           {t('documents.equipment')} *

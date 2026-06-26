@@ -45,7 +45,8 @@
     "approve": "Approve",
     "submit": "Submit for Approval",
     "loading": "Loading...",
-    "noData": "No data"
+    "noData": "No data",
+    "close": "Close"
   },
   "equipment": {
     "title": "Equipment Database",
@@ -87,11 +88,30 @@
     "uploadError": "Failed to upload document. Check file type (PDF, DOCX, TXT) and try again.",
     "aiProcess": "AI Process",
     "aiRetry": "Retry AI",
-    "aiProcessing": "Processing..."
+    "aiProcessing": "Processing...",
+    "aiStarted": "AI processing started for \"{{title}}\". Indexing into the knowledge base — this may take a few minutes.",
+    "aiCompleted": "AI processing completed for \"{{title}}\". The document has been added to the knowledge base.",
+    "aiFailed": "AI processing failed for \"{{title}}\". Check that ai-service and the Celery worker are running.",
+    "aiStartError": "Could not start AI processing. Start Redis (port 6379) and the Celery worker, then restart dev-all.ps1."
   },
   "knowledge": {
     "title": "Knowledge Base",
     "placeholder": "Ask a maintenance question...",
-    "ask": "Ask"
+    "ask": "Ask",
+    "equipment": "Equipment",
+    "allEquipment": "All equipment",
+    "answer": "Answer",
+    "sources": "Sources",
+    "error": "Could not get an answer. Ensure backend is running and documents are indexed in the knowledge base."
+  },
+  "techCards": {
+    "hint": "Select equipment to view tech cards with their readiness status.",
+    "selectEquipment": "Select equipment",
+    "pickEquipment": "Select equipment from the list above first",
+    "colTitle": "Title",
+    "colStatus": "Readiness",
+    "exportPdf": "Download PDF",
+    "noCards": "No tech cards for the selected equipment",
+    "loadError": "Failed to load tech cards"
   }
 }

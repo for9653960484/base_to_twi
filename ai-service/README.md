@@ -20,8 +20,8 @@ ai-service/
 
 ## Типы задач
 
-- `document_parse` — извлечение текста, chunking, embedding
-- `extract_maintenance` — технологические карты из документации
+- `document_parse` / `document_pipeline` — извлечение текста, chunking, embedding (реализация: `document_pipeline.py`)
+- `extract_maintenance` — технологические карты из документации (заглушка)
 - `generate_instruction` — структурированные инструкции ТО
 - `generate_course` — TWI-курсы
 - `generate_competencies` — матрица компетенций

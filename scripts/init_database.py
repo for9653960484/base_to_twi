@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(ROOT / ".env")
 
 INIT_DIR = ROOT / "database" / "init"
+NO_VECTOR_SCHEMA = ROOT / "database" / "schemas" / "01_schema_no_vector.sql"
 
 
 def pgvector_available(cur) -> bool:
@@ -25,10 +26,11 @@ def pgvector_available(cur) -> bool:
 def schema_files(use_no_vector: bool) -> list[Path]:
     files: list[Path] = []
     for path in sorted(INIT_DIR.glob("*.sql")):
-        if path.name == "01_schema_no_vector.sql":
-            continue
         if path.name == "01_schema.sql" and use_no_vector:
-            files.append(INIT_DIR / "01_schema_no_vector.sql")
+            if not NO_VECTOR_SCHEMA.is_file():
+                print(f"Не найден файл {NO_VECTOR_SCHEMA}", file=sys.stderr)
+                return []
+            files.append(NO_VECTOR_SCHEMA)
         else:
             files.append(path)
     return files
@@ -68,7 +70,7 @@ def main() -> int:
     use_no_vector = args.no_vector
     if not use_no_vector and not pgvector_available(cur):
         use_no_vector = True
-        print("  [info] pgvector not found, using 01_schema_no_vector.sql")
+        print("  [info] pgvector not found, using database/schemas/01_schema_no_vector.sql")
         print("         equipment/documents OK; AI Q&A needs pgvector later")
 
     sql_files = schema_files(use_no_vector)
@@ -78,14 +80,13 @@ def main() -> int:
 
     had_errors = False
     for path in sql_files:
-        print(f"  -> {path.name}")
+        print(f"  -> {path.relative_to(ROOT)}")
         sql = path.read_text(encoding="utf-8")
         try:
             cur.execute(sql)
         except psycopg2.Error as exc:
             had_errors = True
             print(f"  WARN {path.name}: {exc.pgerror or exc}")
-            # Повторный запуск на существующей схеме — ожидаемы ошибки «already exists»
 
     cur.close()
     conn.close()

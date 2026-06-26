@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import text
 
-from app.db.session import get_db_session, vector_to_pg
+from app.db.session import get_db_session, pgvector_available, vector_to_pg
 
 
 def update_ai_task(
@@ -63,14 +63,21 @@ def insert_knowledge_chunks(
     source_id: str,
     chunks: list[tuple[int, str, list[float], dict]],
 ) -> int:
+    use_pgvector = pgvector_available()
     with get_db_session() as session:
         for idx, content, embedding, metadata in chunks:
+            if use_pgvector:
+                emb_value: str | list[float] = vector_to_pg(embedding)
+                emb_sql = "CAST(:emb AS vector)"
+            else:
+                emb_value = embedding
+                emb_sql = "CAST(:emb AS real[])"
             session.execute(
-                text("""
+                text(f"""
                     INSERT INTO knowledge_chunks
                         (id, equipment_id, source_type, source_id, chunk_index, content, embedding, metadata)
                     VALUES
-                        (:id, :eq_id, :st::knowledge_source_type, :sid, :idx, :content, :emb::vector, :meta::jsonb)
+                        (:id, :eq_id, CAST(:st AS knowledge_source_type), :sid, :idx, :content, {emb_sql}, CAST(:meta AS jsonb))
                 """),
                 {
                     "id": str(uuid4()),
@@ -79,7 +86,7 @@ def insert_knowledge_chunks(
                     "sid": source_id,
                     "idx": idx,
                     "content": content,
-                    "emb": vector_to_pg(embedding),
+                    "emb": emb_value,
                     "meta": json.dumps(metadata),
                 },
             )

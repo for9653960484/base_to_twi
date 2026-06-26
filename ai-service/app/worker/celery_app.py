@@ -8,7 +8,6 @@ celery_app = Celery(
     backend=settings.REDIS_URL,
     include=[
         "app.tasks.document_pipeline",
-        "app.tasks.document_parse",
         "app.tasks.extract_maintenance",
         "app.tasks.generate_instruction",
         "app.tasks.generate_course",

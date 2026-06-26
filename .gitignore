@@ -36,6 +36,12 @@ htmlcov/
 .pytest_cache/
 coverage/
 
+# Tool caches
+.ruff_cache/
+.mypy_cache/
+.vite/
+*.tsbuildinfo
+
 # Database
 *.db
 *.sqlite3

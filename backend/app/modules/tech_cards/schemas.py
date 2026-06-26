@@ -24,7 +24,15 @@ class TechCardCreate(BaseModel):
 class TechCardResponse(TimestampMixin):
     id: UUID
     equipment_id: UUID
+    equipment_name: str | None = None
     maintenance_type: MaintenanceType
     title: str
     work_items: list[WorkItem]
     status: ContentStatus
+
+
+class TechCardUpdate(BaseModel):
+    title: str | None = None
+    maintenance_type: MaintenanceType | None = None
+    work_items: list[WorkItem] | None = None
+    status: ContentStatus | None = None

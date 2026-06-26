@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { documentsApi } from '@/api/documents';
 import { equipmentApi } from '@/api/equipment';
@@ -7,12 +7,19 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { DocumentTable } from './components/DocumentTable';
 import { DocumentUploadForm } from './components/DocumentUploadForm';
 
+type AiNotice = {
+  type: 'info' | 'success' | 'error';
+  message: string;
+};
+
 export function DocumentsPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [equipmentFilter, setEquipmentFilter] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [aiNotice, setAiNotice] = useState<AiNotice | null>(null);
+  const [trackingAi, setTrackingAi] = useState<Record<string, true>>({});
 
   const { data: equipmentData } = useQuery({
     queryKey: ['equipment', 'all'],
@@ -37,6 +44,37 @@ export function DocumentsPage() {
     },
   });
 
+  useEffect(() => {
+    if (!data?.items || Object.keys(trackingAi).length === 0) return;
+
+    for (const docId of Object.keys(trackingAi)) {
+      const doc = data.items.find((d) => d.id === docId);
+      if (!doc) continue;
+
+      if (doc.ai_processing_status === 'completed') {
+        setAiNotice({
+          type: 'success',
+          message: t('documents.aiCompleted', { title: doc.title }),
+        });
+        setTrackingAi((prev) => {
+          const next = { ...prev };
+          delete next[docId];
+          return next;
+        });
+      } else if (doc.ai_processing_status === 'failed') {
+        setAiNotice({
+          type: 'error',
+          message: t('documents.aiFailed', { title: doc.title }),
+        });
+        setTrackingAi((prev) => {
+          const next = { ...prev };
+          delete next[docId];
+          return next;
+        });
+      }
+    }
+  }, [data, trackingAi, t]);
+
   const [uploadError, setUploadError] = useState('');
 
   const uploadMutation = useMutation({
@@ -59,8 +97,32 @@ export function DocumentsPage() {
       if (action === 'archive') return documentsApi.archive(id);
       if (action === 'ai') return documentsApi.startAiProcess(id, force);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['documents'] }),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      if (variables.action === 'ai') {
+        const doc = data?.items.find((d) => d.id === variables.id);
+        setAiNotice({
+          type: 'info',
+          message: t('documents.aiStarted', { title: doc?.title ?? '' }),
+        });
+        setTrackingAi((prev) => ({ ...prev, [variables.id]: true }));
+      }
+    },
+    onError: (_error, variables) => {
+      if (variables.action === 'ai') {
+        setAiNotice({ type: 'error', message: t('documents.aiStartError') });
+        setTrackingAi((prev) => {
+          const next = { ...prev };
+          delete next[variables.id];
+          return next;
+        });
+      }
+    },
   });
+
+  const handleAction = (action: string, id: string, force?: boolean) => {
+    actionMutation.mutate({ action, id, force });
+  };
 
   return (
     <div>
@@ -101,12 +163,21 @@ export function DocumentsPage() {
         </div>
       )}
 
+      {aiNotice && (
+        <div style={noticeStyle(aiNotice.type)}>
+          <span>{aiNotice.message}</span>
+          <button type="button" onClick={() => setAiNotice(null)} style={noticeDismissBtn}>
+            {t('common.close')}
+          </button>
+        </div>
+      )}
+
       {isLoading ? (
         <p style={{ color: 'var(--color-text-muted)' }}>{t('common.loading')}</p>
       ) : (
         <DocumentTable
           items={data?.items ?? []}
-          onAction={(action, id, force) => actionMutation.mutate({ action, id, force })}
+          onAction={handleAction}
           actionLoading={actionMutation.isPending}
         />
       )}
@@ -140,4 +211,36 @@ const inputStyle: CSSProperties = {
   border: '1px solid var(--color-border)',
   borderRadius: 'var(--radius)',
   minWidth: '200px',
+};
+
+function noticeStyle(type: AiNotice['type']): CSSProperties {
+  const palette = {
+    info: { bg: '#dbeafe', border: '#93c5fd', text: '#1e40af' },
+    success: { bg: '#d1fae5', border: '#6ee7b7', text: '#065f46' },
+    error: { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b' },
+  }[type];
+
+  return {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '1rem',
+    marginBottom: '1rem',
+    padding: '0.75rem 1rem',
+    borderRadius: 'var(--radius)',
+    border: `1px solid ${palette.border}`,
+    background: palette.bg,
+    color: palette.text,
+    fontSize: '0.95rem',
+  };
+}
+
+const noticeDismissBtn: CSSProperties = {
+  padding: '0.25rem 0.6rem',
+  border: '1px solid currentColor',
+  borderRadius: 'var(--radius)',
+  background: 'transparent',
+  color: 'inherit',
+  fontSize: '0.85rem',
+  flexShrink: 0,
 };

@@ -10,8 +10,6 @@ export type MaintenanceType =
 
 export type AIProcessingStatus = 'pending' | 'processing' | 'completed' | 'failed';
 
-export type CourseProgressStatus = 'assigned' | 'in_progress' | 'completed' | 'failed';
-
 export interface Equipment {
   id: string;
   name: string;
@@ -51,19 +49,44 @@ export interface InstructionStep {
   media: { file_path: string; caption?: string }[];
 }
 
-export interface WorkInstruction {
-  id: string;
-  equipment_id: string;
-  title: string;
-  status: ContentStatus;
-  steps: InstructionStep[];
-  created_at: string;
-}
-
 export interface PaginatedResponse<T> {
   items: T[];
   total: number;
   page: number;
   page_size: number;
   pages: number;
+}
+
+export interface KnowledgeSource {
+  source_type: string;
+  source_id: string;
+  title: string;
+  excerpt: string;
+  relevance_score: number;
+}
+
+export interface KnowledgeSearchResponse {
+  answer: string;
+  sources: KnowledgeSource[];
+  equipment_id?: string;
+}
+
+export interface TechCardWorkItem {
+  order: number;
+  description: string;
+  tools: string[];
+  safety: string[];
+  control_params: Record<string, unknown>;
+}
+
+export interface TechCard {
+  id: string;
+  equipment_id: string;
+  equipment_name?: string;
+  maintenance_type: MaintenanceType;
+  title: string;
+  work_items: TechCardWorkItem[];
+  status: ContentStatus;
+  created_at: string;
+  updated_at?: string;
 }

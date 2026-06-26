@@ -10,31 +10,27 @@ backend/
 │   ├── main.py              # Точка входа
 │   ├── api/v1/router.py     # Агрегатор маршрутов
 │   ├── core/                # Config, DB, security, exceptions
-│   ├── shared/              # Общие схемы, утилиты
+│   ├── models/              # SQLAlchemy-модели
+│   ├── shared/              # Общие схемы, storage, brandbook export
 │   └── modules/             # Доменные модули
-│       ├── equipment/
-│       ├── documents/
-│       ├── tech_cards/
-│       ├── maintenance_calendar/
-│       ├── instructions/
-│       ├── twi_courses/
-│       ├── competencies/
-│       ├── users/
-│       ├── hr/
-│       ├── knowledge/
-│       ├── brandbook/
-│       └── ai_processing/
-├── scripts/
+│       ├── equipment/       # ✅ CRUD
+│       ├── documents/       # ✅ upload, versions, AI trigger
+│       ├── tech_cards/      # ✅ list, CRUD, PDF/DOCX export
+│       ├── knowledge/       # ✅ Q&A поиск
+│       ├── ai_processing/   # ✅ статус задач, callback
+│       ├── maintenance_calendar/  # 🟡 заглушки
+│       ├── instructions/    # 🟡 заглушки
+│       ├── twi_courses/     # 🟡 заглушки
+│       ├── competencies/    # 🟡 заглушки
+│       ├── users/           # 🟡 заглушки (dev: JWT bypass)
+│       ├── hr/              # 🟡 заглушки
+│       └── brandbook/       # 🟡 заглушки (экспорт через tech_cards)
 ├── alembic/
 ├── requirements.txt
 └── Dockerfile
 ```
 
-Каждый модуль содержит:
-- `router.py` — HTTP endpoints
-- `schemas.py` — Pydantic DTO
-- `service.py` — бизнес-логика (TODO)
-- `models.py` — SQLAlchemy модели (TODO)
+Каждый модуль обычно содержит `router.py`, `schemas.py` и при необходимости `service.py`.
 
 ## Запуск
 

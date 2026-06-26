@@ -14,7 +14,23 @@
 ### PostgreSQL на Windows
 
 1. Установите [PostgreSQL 16](https://www.postgresql.org/download/windows/).
-2. Установите расширение **pgvector** (через Stack Builder или сборку с pgvector).
+2. Установите расширение **pgvector** — автоматически (рекомендуется):
+
+```powershell
+# PowerShell от имени администратора, из корня репозитория:
+.\scripts\install_pgvector_windows.ps1 -PostgresPassword "ваш_пароль_postgres"
+```
+
+Скрипт скачает prebuilt-бинарник для PG 16.14, скопирует файлы в `C:\Program Files\PostgreSQL\16`, включит расширение и мигрирует колонку `embedding` в `vector(1536)`.
+
+Если файлы уже скопированы вручную — только включение в БД:
+
+```powershell
+.\.venv\Scripts\python.exe scripts\enable_pgvector.py
+```
+
+Альтернатива: сборка из исходников — [pgvector Windows](https://github.com/pgvector/pgvector#windows) (нужны Visual Studio C++ Build Tools).
+
 3. Создайте пользователя и базу (в `psql` от суперпользователя `postgres`):
 
 ```sql

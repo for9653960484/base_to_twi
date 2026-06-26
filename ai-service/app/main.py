@@ -1,10 +1,11 @@
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from app.config import settings
+from app.redis_health import redis_available
 from app.tasks.dispatcher import dispatch_task
 
 
@@ -37,9 +38,11 @@ app = FastAPI(
 
 @app.get("/health")
 async def health():
+    redis_ok = redis_available()
     return {
-        "status": "ok",
+        "status": "ok" if redis_ok else "degraded",
         "service": "ai-service",
+        "redis": "ok" if redis_ok else "unavailable",
         "provider": settings.AI_PROVIDER,
         "models": {
             "external_heavy": settings.AI_EXTERNAL_MODEL,
@@ -57,6 +60,11 @@ async def health():
 @app.post("/tasks", response_model=TaskResponse, status_code=202)
 async def create_task(body: TaskCreateRequest):
     """Постановка задачи в очередь Celery."""
+    if not redis_available():
+        raise HTTPException(
+            status_code=503,
+            detail="Redis unavailable. Start Redis on localhost:6379 (see docs/local-development.md).",
+        )
     result = dispatch_task(
         task_type=body.task_type,
         equipment_id=body.equipment_id,

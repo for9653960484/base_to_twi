@@ -110,7 +110,7 @@ class KnowledgeService:
 
         sql = """
             SELECT kc.content, kc.source_type::text, kc.source_id, kc.metadata,
-                   1 - (kc.embedding <=> :vec::vector) AS score
+                   1 - (kc.embedding <=> CAST(:vec AS vector)) AS score
             FROM knowledge_chunks kc
             WHERE kc.embedding IS NOT NULL
         """
@@ -120,7 +120,7 @@ class KnowledgeService:
             sql += " AND kc.equipment_id = :eq_id"
             params["eq_id"] = str(equipment_id)
 
-        sql += " ORDER BY kc.embedding <=> :vec::vector LIMIT :limit"
+        sql += " ORDER BY kc.embedding <=> CAST(:vec AS vector) LIMIT :limit"
 
         result = await self.db.execute(text(sql), params)
         rows = result.fetchall()

@@ -8,12 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
 from app.models.document import Document  # noqa: F401 — re-export
-
-class TechCard(Base):
-    __tablename__ = "tech_cards"
-
-    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True)
-    equipment_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), ForeignKey("equipment.id"))
+from app.models.tech_card import TechCard  # noqa: F401 — re-export
 
 
 class WorkInstruction(Base):

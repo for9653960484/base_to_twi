@@ -34,10 +34,10 @@
 3. Создайте пользователя и базу (в `psql` от суперпользователя `postgres`):
 
 ```sql
-CREATE USER dream_to WITH PASSWORD 'dream_to_secret';
-CREATE DATABASE dream_to OWNER dream_to;
-GRANT ALL PRIVILEGES ON DATABASE dream_to TO dream_to;
-\c dream_to
+CREATE USER base_to WITH PASSWORD 'base_to_secret';
+CREATE DATABASE base_to OWNER base_to;
+GRANT ALL PRIVILEGES ON DATABASE base_to TO base_to;
+\c base_to
 CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 ```
@@ -53,7 +53,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 ## Быстрый старт
 
 ```powershell
-# Из корня репозитория dream_to (не из backend/)
+# Из корня репозитория base_to_twi (не из backend/)
 .\scripts\setup.ps1
 
 # Инициализация схемы (один раз)

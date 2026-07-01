@@ -1,4 +1,4 @@
--- Dream To: схема БД без pgvector (локальная разработка на Windows)
+-- Base To: схема БД без pgvector (локальная разработка на Windows)
 -- AI Q&A и векторный поиск недоступны до установки pgvector
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

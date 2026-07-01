@@ -126,7 +126,7 @@ Start-PostgresFully
 
 # 2) set postgres password via SQL file (safe for special characters)
 Write-Host "Setting postgres password ..."
-$sqlFile = Join-Path $TempDir "dream_to_alter_postgres.sql"
+$sqlFile = Join-Path $TempDir "base_to_alter_postgres.sql"
 Write-SqlFile -Path $sqlFile -Sql (New-AlterUserSql -Password $PostgresPassword)
 $result = Invoke-PsqlFile -SqlFile $sqlFile
 Remove-TempFile $sqlFile
@@ -149,7 +149,7 @@ if ($LASTEXITCODE -ne 0) {
 
 # 4) restore secure hba and reload
 Restore-HbaSecure
-$reloadFile = Join-Path $TempDir "dream_to_reload.sql"
+$reloadFile = Join-Path $TempDir "base_to_reload.sql"
 Write-SqlFile -Path $reloadFile -Sql "SELECT pg_reload_conf();"
 Invoke-PsqlFile -SqlFile $reloadFile -Password $PostgresPassword | Out-Null
 Remove-TempFile $reloadFile
@@ -158,9 +158,9 @@ Remove-TempFile $reloadFile
 Stop-PostgresFully
 Start-PostgresFully
 
-$verifyFile = Join-Path $TempDir "dream_to_verify.sql"
+$verifyFile = Join-Path $TempDir "base_to_verify.sql"
 Write-SqlFile -Path $verifyFile -Sql "SELECT extversion FROM pg_extension WHERE extname='vector';"
-$verify = Invoke-PsqlFile -SqlFile $verifyFile -Password $PostgresPassword -Database "dream_to"
+$verify = Invoke-PsqlFile -SqlFile $verifyFile -Password $PostgresPassword -Database "base_to"
 Remove-TempFile $verifyFile
 if ($verify.ExitCode -ne 0) {
     Write-Host $verify.Output

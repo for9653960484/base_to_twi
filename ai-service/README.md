@@ -1,4 +1,4 @@
-# Dream To AI Service
+# Base To AI Service
 
 Отдельный микросервис для асинхронной AI-обработки документов.
 

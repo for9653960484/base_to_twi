@@ -41,7 +41,7 @@ def ensure_default_tech_card_template() -> Path:
 
 
 def _write_template_file(path: Path) -> None:
-    """Корпоративный шаблон брендбука (базовая вёрстка Dream To)."""
+    """Корпоративный шаблон брендбука (базовая вёрстка Base To)."""
     doc = Document()
     title = doc.add_heading("Технологическая карта", level=0)
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -73,7 +73,7 @@ def _write_template_file(path: Path) -> None:
 
     doc.add_paragraph("{{WORK_ITEMS_TABLE}}")
     doc.add_paragraph("")
-    footer = doc.add_paragraph("Документ сформирован системой Dream To")
+    footer = doc.add_paragraph("Документ сформирован системой Base To")
     footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
     for run in footer.runs:
         run.font.size = Pt(9)

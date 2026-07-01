@@ -1,4 +1,4 @@
--- Dream To: начальная схема БД
+-- Base To: начальная схема БД
 -- PostgreSQL 16 + pgvector
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

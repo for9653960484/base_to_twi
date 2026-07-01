@@ -5,7 +5,7 @@ $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
 
-Write-Host "=== Dream To: настройка локальной разработки ===" -ForegroundColor Cyan
+Write-Host "=== Base To: настройка локальной разработки ===" -ForegroundColor Cyan
 
 if (-not (Test-Path ".env")) {
     Copy-Item ".env.example" ".env"

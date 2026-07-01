@@ -1,1 +1,1 @@
-"""Alembic migrations for Dream To database."""
+"""Alembic migrations for Base To database."""

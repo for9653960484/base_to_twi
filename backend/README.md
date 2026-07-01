@@ -1,4 +1,4 @@
-# Dream To Backend
+# Base To Backend
 
 FastAPI REST API v1 с модульной доменной архитектурой.
 
@@ -34,7 +34,7 @@ backend/
 
 ## Запуск
 
-Локальная разработка — из **корня репозитория** (`dream_to/`), см. [docs/local-development.md](../docs/local-development.md).
+Локальная разработка — из **корня репозитория** (`base_to_twi/`), см. [docs/local-development.md](../docs/local-development.md).
 
 ```powershell
 cd ..   # из backend/ в корень

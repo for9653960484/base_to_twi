@@ -1,15 +1,15 @@
 # Развёртывание на сервере и автообновление
 
-Репозиторий: [github.com/for9653960484/dream_to](https://github.com/for9653960484/dream_to)
+Репозиторий: [github.com/for9653960484/base_to_twi](https://github.com/for9653960484/base_to_twi)
 
 ## Первичная установка на сервере
 
 ```bash
 # 1. Клонировать
-sudo mkdir -p /opt/dream_to
-sudo chown $USER:$USER /opt/dream_to
-git clone https://github.com/for9653960484/dream_to.git /opt/dream_to
-cd /opt/dream_to
+sudo mkdir -p /opt/base_to_twi
+sudo chown $USER:$USER /opt/base_to_twi
+git clone https://github.com/for9653960484/base_to_twi.git /opt/base_to_twi
+cd /opt/base_to_twi
 
 # 2. Настроить окружение
 cp .env.example .env
@@ -40,7 +40,7 @@ curl http://localhost:8000/health
 | `DEPLOY_HOST` | `203.0.113.10` | IP или домен сервера |
 | `DEPLOY_USER` | `deploy` | SSH-пользователь |
 | `DEPLOY_SSH_KEY` | `-----BEGIN OPENSSH...` | Приватный ключ (без passphrase) |
-| `DEPLOY_PATH` | `/opt/dream_to` | Путь к проекту на сервере |
+| `DEPLOY_PATH` | `/opt/base_to_twi` | Путь к проекту на сервере |
 | `DEPLOY_PORT` | `22` | SSH-порт (опционально) |
 
 ### Подготовка SSH на сервере
@@ -51,26 +51,26 @@ sudo adduser deploy
 sudo usermod -aG docker deploy
 
 # На своей машине — ключ только для деплоя
-ssh-keygen -t ed25519 -C "github-deploy-dream_to" -f ~/.ssh/dream_to_deploy
+ssh-keygen -t ed25519 -C "github-deploy-base_to_twi" -f ~/.ssh/base_to_twi_deploy
 
 # Публичный ключ на сервер
-ssh-copy-id -i ~/.ssh/dream_to_deploy.pub deploy@YOUR_SERVER
+ssh-copy-id -i ~/.ssh/base_to_twi_deploy.pub deploy@YOUR_SERVER
 
 # Приватный ключ → GitHub Secret DEPLOY_SSH_KEY
-cat ~/.ssh/dream_to_deploy
+cat ~/.ssh/base_to_twi_deploy
 ```
 
 На сервере для пользователя `deploy`:
 
 ```bash
-cd /opt/dream_to
-git config --global --add safe.directory /opt/dream_to
+cd /opt/base_to_twi
+git config --global --add safe.directory /opt/base_to_twi
 ```
 
 ## Ручное обновление на сервере
 
 ```bash
-cd /opt/dream_to
+cd /opt/base_to_twi
 bash scripts/deploy-server.sh
 ```
 
@@ -80,7 +80,7 @@ bash scripts/deploy-server.sh
 
 ```cron
 # crontab -e
-0 */6 * * * cd /opt/dream_to && git fetch origin main && git reset --hard origin/main && docker compose up -d --build >> /var/log/dream_to_deploy.log 2>&1
+0 */6 * * * cd /opt/base_to_twi && git fetch origin main && git reset --hard origin/main && docker compose up -d --build >> /var/log/base_to_twi_deploy.log 2>&1
 ```
 
 ## Локальная разработка → GitHub

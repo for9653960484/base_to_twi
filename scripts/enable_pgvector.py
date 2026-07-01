@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Enable pgvector in dream_to DB and migrate embedding REAL[] -> vector(1536)."""
+"""Enable pgvector in base_to DB and migrate embedding REAL[] -> vector(1536)."""
 
 import getpass
 import os
@@ -41,7 +41,7 @@ def run_psql(psql: Path, password: str, sql: str) -> subprocess.CompletedProcess
             "-U",
             "postgres",
             "-d",
-            os.getenv("POSTGRES_DB", "dream_to"),
+            os.getenv("POSTGRES_DB", "base_to"),
             "-v",
             "ON_ERROR_STOP=1",
             "-t",
@@ -64,7 +64,7 @@ def main() -> int:
 
     host = os.getenv("POSTGRES_HOST", "localhost")
     port = os.getenv("POSTGRES_PORT", "5432")
-    db = os.getenv("POSTGRES_DB", "dream_to")
+    db = os.getenv("POSTGRES_DB", "base_to")
 
     print(f"Connecting postgres@{host}:{port}/{db} ...")
 
@@ -79,7 +79,7 @@ def main() -> int:
         print("Connection failed.")
         if probe.stderr.strip():
             print(probe.stderr.strip())
-        print("Use postgres superuser password (not dream_to).")
+        print("Use postgres superuser password (not base_to).")
         return 1
 
     ext_check = run_psql(

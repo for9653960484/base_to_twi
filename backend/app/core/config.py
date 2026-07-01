@@ -13,15 +13,15 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    APP_NAME: str = "Dream To"
+    APP_NAME: str = "Base To"
     APP_ENV: str = "development"
     APP_SECRET_KEY: str = "change-me"
 
     POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: int = 5432
-    POSTGRES_DB: str = "dream_to"
-    POSTGRES_USER: str = "dream_to"
-    POSTGRES_PASSWORD: str = "dream_to_secret"
+    POSTGRES_DB: str = "base_to"
+    POSTGRES_USER: str = "base_to"
+    POSTGRES_PASSWORD: str = "base_to_secret"
 
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8000

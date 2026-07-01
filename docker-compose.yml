@@ -5,25 +5,25 @@ version: "3.9"
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: dream_to_postgres
+    container_name: base_to_postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-dream_to}
-      POSTGRES_USER: ${POSTGRES_USER:-dream_to}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dream_to_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-base_to}
+      POSTGRES_USER: ${POSTGRES_USER:-base_to}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-base_to_secret}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dream_to}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-base_to}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   redis:
     image: redis:7-alpine
-    container_name: dream_to_redis
+    container_name: base_to_redis
     ports:
       - "6379:6379"
     volumes:
@@ -38,7 +38,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: dream_to_backend
+    container_name: base_to_backend
     env_file: .env
     environment:
       POSTGRES_HOST: postgres
@@ -60,7 +60,7 @@ services:
     build:
       context: ./ai-service
       dockerfile: Dockerfile
-    container_name: dream_to_ai
+    container_name: base_to_ai
     env_file: .env
     environment:
       POSTGRES_HOST: postgres
@@ -81,7 +81,7 @@ services:
     build:
       context: ./ai-service
       dockerfile: Dockerfile
-    container_name: dream_to_worker
+    container_name: base_to_worker
     env_file: .env
     environment:
       POSTGRES_HOST: postgres
@@ -100,7 +100,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: dream_to_frontend
+    container_name: base_to_frontend
     env_file: .env
     ports:
       - "5173:5173"

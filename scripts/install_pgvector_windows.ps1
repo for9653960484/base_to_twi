@@ -83,5 +83,5 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host ""
-Write-Host "Done. pgvector is enabled in database dream_to." -ForegroundColor Green
+Write-Host "Done. pgvector is enabled in database base_to." -ForegroundColor Green
 Write-Host "Restart Celery worker (dev-all.ps1 window) to use vector mode."

@@ -96,6 +96,6 @@ def render_tech_card_pdf(
     pdf.set_y(-15)
     pdf.set_text_color(*MUTED_RGB)
     pdf.set_font("Doc", size=8)
-    pdf.cell(0, 8, "Документ сформирован системой Dream To", align="C")
+    pdf.cell(0, 8, "Документ сформирован системой Base To", align="C")
 
     return bytes(pdf.output())

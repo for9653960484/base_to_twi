@@ -29,7 +29,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Dream To AI Service",
+    title="Base To AI Service",
     version="0.1.0",
     description="Микросервис AI-обработки документов и генерации контента",
     lifespan=lifespan,

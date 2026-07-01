@@ -8,7 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: github.repository == 'for9653960484/dream_to'
+    if: github.repository == 'for9653960484/base_to_twi'
 
     steps:
       - name: Deploy via SSH

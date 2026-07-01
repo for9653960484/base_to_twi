@@ -16,9 +16,9 @@ class Settings(BaseSettings):
 
     POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: int = 5432
-    POSTGRES_DB: str = "dream_to"
-    POSTGRES_USER: str = "dream_to"
-    POSTGRES_PASSWORD: str = "dream_to_secret"
+    POSTGRES_DB: str = "base_to"
+    POSTGRES_USER: str = "base_to"
+    POSTGRES_PASSWORD: str = "base_to_secret"
 
     STORAGE_LOCAL_PATH: str = "./storage"
 

@@ -37,7 +37,7 @@ def schema_files(use_no_vector: bool) -> list[Path]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Инициализация схемы БД dream_to")
+    parser = argparse.ArgumentParser(description="Инициализация схемы БД base_to")
     parser.add_argument(
         "--no-vector",
         action="store_true",
@@ -47,9 +47,9 @@ def main() -> int:
 
     host = os.getenv("POSTGRES_HOST", "localhost")
     port = int(os.getenv("POSTGRES_PORT", "5432"))
-    db = os.getenv("POSTGRES_DB", "dream_to")
-    user = os.getenv("POSTGRES_USER", "dream_to")
-    password = os.getenv("POSTGRES_PASSWORD", "dream_to_secret")
+    db = os.getenv("POSTGRES_DB", "base_to")
+    user = os.getenv("POSTGRES_USER", "base_to")
+    password = os.getenv("POSTGRES_PASSWORD", "base_to_secret")
 
     print(f"Подключение к {user}@{host}:{port}/{db} ...")
     try:

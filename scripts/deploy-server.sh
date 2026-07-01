@@ -2,11 +2,11 @@
 # Скрипт обновления на сервере (вызывается вручную или из GitHub Actions)
 set -euo pipefail
 
-APP_DIR="${DEPLOY_PATH:-/opt/dream_to}"
+APP_DIR="${DEPLOY_PATH:-/opt/base_to_twi}"
 BRANCH="${DEPLOY_BRANCH:-main}"
 
 cd "$APP_DIR"
-echo "=== Dream To deploy: $(pwd) ==="
+echo "=== Base To deploy: $(pwd) ==="
 
 git fetch origin "$BRANCH"
 git reset --hard "origin/$BRANCH"

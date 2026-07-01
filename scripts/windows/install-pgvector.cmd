@@ -1,5 +1,5 @@
 @echo off
-title Install pgvector for dream_to
+title Install pgvector for base_to
 
 net session >nul 2>&1
 if %errorlevel% neq 0 (

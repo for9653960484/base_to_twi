@@ -260,5 +260,4 @@ VECTOR_DIMENSION=768
 - [Архитектура](docs/architecture.md)
 - [Модель данных](docs/data-model.md)
 - [API контракты](docs/api-contracts.md)
-- [AI-модуль](docs/ai-module.md)#   b a s e _ t o _ t w i  
- 
+- [AI-модуль](docs/ai-module.md)

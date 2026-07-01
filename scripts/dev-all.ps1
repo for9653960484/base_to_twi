@@ -16,13 +16,45 @@ function Test-RedisPort {
     }
 }
 
+function Start-RedisDocker {
+    $composeFile = Join-Path $Root "docker-compose.yml"
+    if (-not (Test-Path $composeFile)) {
+        return $false
+    }
+    $null = docker info 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        return $false
+    }
+    Write-Host "Starting Redis via Docker..." -ForegroundColor Cyan
+    Push-Location $Root
+    try {
+        docker compose up -d redis 2>&1 | Out-Null
+    } finally {
+        Pop-Location
+    }
+    if ($LASTEXITCODE -ne 0) {
+        return $false
+    }
+    foreach ($i in 1..15) {
+        Start-Sleep -Seconds 1
+        if (Test-RedisPort) {
+            Write-Host "Redis is ready on localhost:6379" -ForegroundColor Green
+            return $true
+        }
+    }
+    return $false
+}
+
 if (-not (Test-RedisPort)) {
-    Write-Host ""
-    Write-Host "WARNING: Redis is not running on localhost:6379." -ForegroundColor Yellow
-    Write-Host "AI processing requires Redis + Celery worker." -ForegroundColor Yellow
-    Write-Host "Options: Memurai, Redis in WSL2, or: docker compose up -d redis" -ForegroundColor Yellow
-    Write-Host "See docs\local-development.md" -ForegroundColor Yellow
-    Write-Host ""
+    if (-not (Start-RedisDocker)) {
+        Write-Host ""
+        Write-Host "WARNING: Redis is not running on localhost:6379." -ForegroundColor Yellow
+        Write-Host "AI processing requires Redis + Celery worker." -ForegroundColor Yellow
+        Write-Host "1) Start Docker Desktop, then: docker compose up -d redis" -ForegroundColor Yellow
+        Write-Host "2) Or install Memurai (Redis for Windows)" -ForegroundColor Yellow
+        Write-Host "See docs\local-development.md" -ForegroundColor Yellow
+        Write-Host ""
+    }
 }
 
 $scripts = @(

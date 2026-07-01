@@ -10,7 +10,7 @@ import psycopg2
 from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[1]
-load_dotenv(ROOT / ".env")
+load_dotenv(ROOT / ".env", override=True)
 
 INIT_DIR = ROOT / "database" / "init"
 NO_VECTOR_SCHEMA = ROOT / "database" / "schemas" / "01_schema_no_vector.sql"
@@ -51,11 +51,22 @@ def main() -> int:
     user = os.getenv("POSTGRES_USER", "base_to")
     password = os.getenv("POSTGRES_PASSWORD", "base_to_secret")
 
+    os.environ.setdefault("PGCLIENTENCODING", "UTF8")
+
     print(f"Подключение к {user}@{host}:{port}/{db} ...")
     try:
         conn = psycopg2.connect(
             host=host, port=port, dbname=db, user=user, password=password
         )
+    except UnicodeDecodeError:
+        print(
+            "Ошибка подключения: PostgreSQL отклонил вход (часто — неверный пароль "
+            "или БД ещё не создана).\n"
+            "Сначала выполните:\n"
+            "  .\\.venv\\Scripts\\python.exe scripts\\create_database.py --recreate",
+            file=sys.stderr,
+        )
+        return 1
     except psycopg2.OperationalError as exc:
         print(
             f"Ошибка подключения: {exc}\n"

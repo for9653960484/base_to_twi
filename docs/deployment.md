@@ -40,7 +40,7 @@ curl http://localhost:8000/health
 | `DEPLOY_HOST` | `203.0.113.10` | IP или домен сервера |
 | `DEPLOY_USER` | `deploy` | SSH-пользователь |
 | `DEPLOY_SSH_KEY` | `-----BEGIN OPENSSH...` | Приватный ключ (без passphrase) |
-| `DEPLOY_PATH` | `/opt/base_to_twi` | Путь к проекту на сервере |
+| `DEPLOY_PATH` | `/opt/base_to_twi` | Путь к проекту на сервере (только `/`, не `\`) |
 | `DEPLOY_PORT` | `22` | SSH-порт (опционально) |
 
 ### Подготовка SSH на сервере

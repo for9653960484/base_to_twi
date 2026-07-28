@@ -13,14 +13,18 @@ jobs:
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          # Путь через envs: иначе / в secrets.DEPLOY_PATH съедаются в script
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: DEPLOY_PATH
           script: |
             set -e
-            cd ${{ secrets.DEPLOY_PATH }}
+            cd "$DEPLOY_PATH"
             git fetch origin main
             git reset --hard origin/main
             docker compose pull --ignore-buildable || true

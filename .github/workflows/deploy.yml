@@ -9,6 +9,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     if: github.repository == 'for9653960484/base_to_twi'
+    timeout-minutes: 45
 
     steps:
       - name: Deploy via SSH
@@ -21,13 +22,15 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
+          # docker build/pull на слабом канале часто > 10m (дефолт action)
+          command_timeout: 30m
           envs: DEPLOY_PATH
           script: |
             set -e
             cd "$DEPLOY_PATH"
             git fetch origin main
             git reset --hard origin/main
-            docker compose pull --ignore-buildable || true
-            docker compose build --pull
+            # без --pull: не тянуть base-образы заново, если уже есть локально
+            docker compose build
             docker compose up -d
             docker image prune -f

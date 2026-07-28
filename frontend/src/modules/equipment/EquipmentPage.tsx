@@ -53,6 +53,11 @@ export function EquipmentPage() {
     },
   });
 
+  const saveError =
+    (createMutation.isError && (createMutation.error as Error)?.message) ||
+    (updateMutation.isError && (updateMutation.error as Error)?.message) ||
+    null;
+
   return (
     <div>
       <PageHeader
@@ -61,6 +66,8 @@ export function EquipmentPage() {
           <button
             onClick={() => {
               setEditing(null);
+              createMutation.reset();
+              updateMutation.reset();
               setShowForm(true);
             }}
             style={btnPrimary}
@@ -94,6 +101,13 @@ export function EquipmentPage() {
         </div>
       )}
 
+      {(createMutation.isError || updateMutation.isError) && (
+        <div style={{ color: 'var(--color-danger)', marginBottom: '1rem' }}>
+          {t('equipment.saveError')}
+          {saveError ? `: ${saveError}` : ''}
+        </div>
+      )}
+
       {isLoading ? (
         <p style={{ color: 'var(--color-text-muted)' }}>{t('common.loading')}</p>
       ) : (
@@ -101,6 +115,8 @@ export function EquipmentPage() {
           items={data?.items ?? []}
           onEdit={(item) => {
             setEditing(item);
+            createMutation.reset();
+            updateMutation.reset();
             setShowForm(true);
           }}
         />

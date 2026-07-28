@@ -59,6 +59,7 @@
     "createTitle": "New Equipment",
     "editTitle": "Edit Equipment",
     "loadError": "Failed to load equipment list",
+    "saveError": "Failed to save equipment",
     "active": "Active",
     "inactive": "Inactive"
   },

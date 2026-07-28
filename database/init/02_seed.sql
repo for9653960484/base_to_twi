@@ -18,7 +18,7 @@ INSERT INTO competency_levels (level_value, name, description) VALUES
 INSERT INTO specializations (code, name, description) VALUES
     ('mechanic', '{"ru": "Механик", "en": "Mechanic"}', '{"ru": "Механическое обслуживание", "en": "Mechanical maintenance"}'),
     ('electrician', '{"ru": "Электрик", "en": "Electrician"}', '{"ru": "Электротехническое обслуживание", "en": "Electrical maintenance"}'),
-    ('operator', '{"ru": "Оператор", "en": "Operator"}', '{"ru": "Эксплуатация аттракционов", "en": "Attraction operation"}');
+    ('operator', '{"ru": "Оператор", "en": "Operator"}', '{"ru": "Эксплуатация оборудования", "en": "Equipment operation"}');
 
 -- Dev-пользователь для локальной разработки (совпадает с DEV_USER_ID в backend)
 INSERT INTO users (id, email, full_name, role_id)

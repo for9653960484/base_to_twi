@@ -39,7 +39,7 @@ erDiagram
 | Колонка | Тип | Описание |
 |---------|-----|----------|
 | id | UUID PK | Идентификатор |
-| name | VARCHAR | Название аттракциона |
+| name | VARCHAR | Название оборудования |
 | serial_name | VARCHAR | Серийное название |
 | custom_attributes | JSONB | Настраиваемые поля |
 | is_active | BOOLEAN | Активен |

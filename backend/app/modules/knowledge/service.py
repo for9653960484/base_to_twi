@@ -55,7 +55,7 @@ async def _generate_answer(query: str, context: str) -> str:
         return context[:2000] if context else "Контекст не найден."
 
     model = settings.qa_model
-    system = "Ты — справочная система технической поддержки по обслуживанию аттракционов. Отвечай на русском, кратко и по делу, опираясь только на контекст."
+    system = "Ты — справочная система технической поддержки по обслуживанию оборудования. Отвечай на русском, кратко и по делу, опираясь только на контекст."
     prompt = f"Контекст:\n{context}\n\nВопрос: {query}"
 
     if settings.AI_PROVIDER in ("local", "hybrid"):

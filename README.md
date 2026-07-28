@@ -140,7 +140,7 @@ base_to_twi/
 ```powershell
 # Важно: команды выполняются из КОРНЯ репозитория base_to_twi, не из backend/
 
-cd C:\Users\Дима\Documents\АЛЕКСАНДР\КОДИНГ_проекты\base_to_twi
+cd C:\Users\Дима\Documents\ALEX\PROJECTS\base_to_twi
 
 # 1. Настройка (venv, npm, .env)
 .\setup.ps1

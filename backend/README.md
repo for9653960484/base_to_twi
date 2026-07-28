@@ -25,7 +25,6 @@ backend/
 │       ├── users/           # 🟡 заглушки (dev: JWT bypass)
 │       ├── hr/              # 🟡 заглушки
 │       └── brandbook/       # 🟡 заглушки (экспорт через tech_cards)
-├── alembic/
 ├── requirements.txt
 └── Dockerfile
 ```

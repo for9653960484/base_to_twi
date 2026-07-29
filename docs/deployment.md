@@ -32,6 +32,22 @@ curl http://localhost:8002/health   # AI (8001 на хосте занят vmeste
 
 Локальная разработка по-прежнему через `docker-compose.yml` или `scripts/dev-all.ps1` (без GHCR).
 
+## Порты на сервере (хост)
+
+| Сервис | Порт |
+|--------|------|
+| Frontend | 5173 |
+| Backend API | **8010** |
+| AI service | **8002** |
+| Postgres / Redis | не публикуются наружу |
+
+В `.env` на сервере для UI:
+
+```env
+VITE_API_BASE_URL=http://YOUR_SERVER:8010/api/v1
+CORS_ORIGINS=http://YOUR_SERVER:5173
+```
+
 ## Автообновление через GitHub Actions
 
 При каждом `push` в `main` workflow `.github/workflows/deploy.yml`:

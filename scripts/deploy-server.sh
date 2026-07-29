@@ -1,9 +1,12 @@
 #!/bin/bash
-# Скрипт обновления на сервере (вызывается вручную или из GitHub Actions)
+# Ручное обновление на сервере после того, как образы уже в GHCR
 set -euo pipefail
 
 APP_DIR="${DEPLOY_PATH:-/opt/base_to_twi}"
 BRANCH="${DEPLOY_BRANCH:-main}"
+IMAGE_BACKEND="${IMAGE_BACKEND:-ghcr.io/for9653960484/base_to_twi-backend:latest}"
+IMAGE_AI="${IMAGE_AI:-ghcr.io/for9653960484/base_to_twi-ai:latest}"
+IMAGE_FRONTEND="${IMAGE_FRONTEND:-ghcr.io/for9653960484/base_to_twi-frontend:latest}"
 
 cd "$APP_DIR"
 echo "=== Base To deploy: $(pwd) ==="
@@ -11,9 +14,9 @@ echo "=== Base To deploy: $(pwd) ==="
 git fetch origin "$BRANCH"
 git reset --hard "origin/$BRANCH"
 
-docker compose pull --ignore-buildable 2>/dev/null || true
-docker compose build --pull
-docker compose up -d
+export IMAGE_BACKEND IMAGE_AI IMAGE_FRONTEND
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
 echo "=== Deploy complete ==="
-docker compose ps
+docker compose -f docker-compose.prod.yml ps

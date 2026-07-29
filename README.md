@@ -177,13 +177,14 @@ cd C:\Users\Дима\Documents\ALEX\PROJECTS\base_to_twi
 
 ## Развёртывание на сервере (Docker)
 
-Docker Compose предназначен для **сервера**, не для ежедневной разработки.
+Прод: образы собираются в GitHub Actions и пушатся в GHCR; на сервере — `docker-compose.prod.yml`.  
+Подробно: **[docs/deployment.md](docs/deployment.md)**.
 
 ```bash
 cp .env.example .env
 # Настроить продакшен-секреты и AI-ключи
-
-docker compose up -d
+# После push в main (или docker login + pull):
+docker compose -f docker-compose.prod.yml up -d
 ```
 
 Схема БД применяется при первом запуске `postgres` из `database/init/`.

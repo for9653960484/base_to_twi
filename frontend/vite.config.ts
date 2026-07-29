@@ -11,8 +11,10 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    host: true,
     proxy: {
       '/api': {
+        // Локально: 127.0.0.1:8080/8000; в Docker prod: http://backend:8000
         target: process.env.VITE_PROXY_TARGET || 'http://127.0.0.1:8080',
         changeOrigin: true,
       },

@@ -41,10 +41,14 @@ curl http://localhost:8002/health   # AI (8001 на хосте занят vmeste
 | AI service | **8002** |
 | Postgres / Redis | не публикуются наружу |
 
-В `.env` на сервере для UI:
+В `.env` на сервере для UI **не указывайте** `VITE_API_BASE_URL=http://localhost:...` —
+браузер пользователя обратится к своему localhost и получит Network Error.
+
+В `docker-compose.prod.yml` frontend уже настроен на относительный `/api/v1` + прокси на `backend:8000`.
+
+Опционально для CORS, если API вызывают напрямую с другого origin:
 
 ```env
-VITE_API_BASE_URL=http://YOUR_SERVER:8010/api/v1
 CORS_ORIGINS=http://YOUR_SERVER:5173
 ```
 

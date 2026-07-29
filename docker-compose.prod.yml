@@ -95,11 +95,16 @@ services:
     image: ${IMAGE_FRONTEND:-ghcr.io/for9653960484/base_to_twi-frontend:latest}
     container_name: base_to_frontend
     env_file: .env
+    environment:
+      # Браузер ходит на тот же origin (/api/v1), Vite проксирует в backend.
+      # Иначе VITE_API_BASE_URL=http://localhost:... даёт Network Error у клиента.
+      VITE_API_BASE_URL: /api/v1
+      VITE_PROXY_TARGET: http://backend:8000
     ports:
       - "${FRONTEND_HOST_PORT:-5173}:5173"
     depends_on:
       - backend
-    command: npm run dev -- --host 0.0.0.0
+    command: npm run dev -- --host 0.0.0.0 --port 5173
     restart: unless-stopped
 
 volumes:

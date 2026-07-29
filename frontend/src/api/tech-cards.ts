@@ -8,7 +8,7 @@ export const techCardsApi = {
     equipment_id?: string;
     maintenance_type?: string;
     status?: string;
-  }) => apiClient.get<PaginatedResponse<TechCard>>('/tech-cards', { params }),
+  }) => apiClient.get<PaginatedResponse<TechCard>>('/tech-cards/', { params }),
 
   get: (id: string) => apiClient.get<TechCard>(`/tech-cards/${id}`),
 

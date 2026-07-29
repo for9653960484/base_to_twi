@@ -24,6 +24,8 @@ def create_app() -> FastAPI:
         docs_url="/docs",
         redoc_url="/redoc",
         lifespan=lifespan,
+        # Иначе /equipment → 307 /equipment/ и XHR через Vite proxy даёт Network Error
+        redirect_slashes=False,
     )
 
     app.add_middleware(

@@ -7,7 +7,7 @@ export const documentsApi = {
     equipment_id?: string;
     status?: string;
     search?: string;
-  }) => apiClient.get<PaginatedResponse<Document>>('/documents', { params }),
+  }) => apiClient.get<PaginatedResponse<Document>>('/documents/', { params }),
 
   get: (id: string) => apiClient.get<Document>(`/documents/${id}`),
 

@@ -87,7 +87,15 @@ export function DocumentsPage() {
       setShowForm(false);
       setUploadError('');
     },
-    onError: () => setUploadError(t('documents.uploadError')),
+    onError: (err: unknown) => {
+      const detail =
+        (err as { response?: { data?: { detail?: string } }; message?: string })?.response?.data
+          ?.detail ||
+        (err as { message?: string })?.message;
+      setUploadError(
+        detail ? `${t('documents.uploadError')}: ${detail}` : t('documents.uploadError'),
+      );
+    },
   });
 
   const actionMutation = useMutation({

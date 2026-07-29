@@ -11,10 +11,11 @@ export const documentsApi = {
 
   get: (id: string) => apiClient.get<Document>(`/documents/${id}`),
 
-  upload: (formData: FormData) => apiClient.post<Document>('/documents/upload', formData),
+  upload: (formData: FormData) =>
+    apiClient.postForm<Document>('/documents/upload', formData, { timeout: 600_000 }),
 
   uploadVersion: (id: string, formData: FormData) =>
-    apiClient.post<Document>(`/documents/${id}/versions`, formData),
+    apiClient.postForm<Document>(`/documents/${id}/versions`, formData, { timeout: 600_000 }),
 
   downloadUrl: (id: string) => {
     const base = apiClient.defaults.baseURL || '/api/v1';

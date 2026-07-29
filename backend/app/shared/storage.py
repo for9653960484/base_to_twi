@@ -74,12 +74,24 @@ class FileStorage:
 
     def resolve_path(self, relative_path: str) -> Path:
         full = (self.base_path / relative_path).resolve()
+        if full.is_file():
+            if not str(full).startswith(str(self.base_path.resolve())):
+                raise ValueError("Invalid file path")
+            return full
+        # Совместимость: до фикса файлы могли оказаться в /storage (вне тома)
+        legacy_root = Path("/storage")
+        legacy = (legacy_root / relative_path).resolve()
+        if legacy.is_file() and str(legacy).startswith(str(legacy_root.resolve())):
+            return legacy
         if not str(full).startswith(str(self.base_path.resolve())):
             raise ValueError("Invalid file path")
         return full
 
     def exists(self, relative_path: str) -> bool:
-        return self.resolve_path(relative_path).is_file()
+        try:
+            return self.resolve_path(relative_path).is_file()
+        except ValueError:
+            return False
 
 
 def get_storage() -> FileStorage:

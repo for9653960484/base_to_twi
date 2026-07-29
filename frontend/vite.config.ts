@@ -17,6 +17,9 @@ export default defineConfig({
         // Локально: 127.0.0.1:8080/8000; в Docker prod: http://backend:8000
         target: process.env.VITE_PROXY_TARGET || 'http://127.0.0.1:8010',
         changeOrigin: true,
+        // Крупные PDF (до 50 MB) иначе могут оборваться по таймауту прокси
+        timeout: 600_000,
+        proxyTimeout: 600_000,
       },
     },
   },

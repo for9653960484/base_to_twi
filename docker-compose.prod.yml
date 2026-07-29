@@ -41,6 +41,9 @@ services:
       POSTGRES_HOST: postgres
       REDIS_URL: redis://redis:6379/0
       AI_SERVICE_URL: http://ai-service:8001
+      # Абсолютный путь: иначе PROJECT_ROOT в образе указывает на /,
+      # файлы пишутся в /storage вне общего тома — worker их не видит.
+      STORAGE_LOCAL_PATH: /app/storage
     ports:
       # 8010 снаружи: 8000 часто занят на том же VPS
       - "${API_HOST_PORT:-8010}:8000"
@@ -61,6 +64,7 @@ services:
     environment:
       POSTGRES_HOST: postgres
       REDIS_URL: redis://redis:6379/0
+      STORAGE_LOCAL_PATH: /app/storage
     ports:
       # 8002 снаружи: 8001 занят vmeste-api
       - "${AI_HOST_PORT:-8002}:8001"
@@ -81,6 +85,7 @@ services:
     environment:
       POSTGRES_HOST: postgres
       REDIS_URL: redis://redis:6379/0
+      STORAGE_LOCAL_PATH: /app/storage
     volumes:
       - storage_data:/app/storage
     depends_on:

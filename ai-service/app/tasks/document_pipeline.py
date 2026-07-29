@@ -44,6 +44,10 @@ def _resolve_file_path(file_path: str) -> Path:
     full = Path(settings.storage_local_path_resolved) / file_path
     if full.is_file():
         return full
+    # Совместимость со старым Docker-путём вне тома
+    legacy = Path("/storage") / file_path
+    if legacy.is_file():
+        return legacy
     raise FileNotFoundError(f"File not found: {file_path}")
 
 

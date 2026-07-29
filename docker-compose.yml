@@ -46,6 +46,7 @@ services:
       POSTGRES_HOST: postgres
       REDIS_URL: redis://redis:6379/0
       AI_SERVICE_URL: http://ai-service:8001
+      STORAGE_LOCAL_PATH: /app/storage
     ports:
       - "${API_PORT:-8000}:8000"
     volumes:
@@ -69,6 +70,7 @@ services:
     environment:
       POSTGRES_HOST: postgres
       REDIS_URL: redis://redis:6379/0
+      STORAGE_LOCAL_PATH: /app/storage
     ports:
       - "8001:8001"
     volumes:
@@ -92,6 +94,7 @@ services:
     environment:
       POSTGRES_HOST: postgres
       REDIS_URL: redis://redis:6379/0
+      STORAGE_LOCAL_PATH: /app/storage
     volumes:
       - ./ai-service:/app
       - storage_data:/app/storage

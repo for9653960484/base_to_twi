@@ -81,7 +81,15 @@ class Settings(BaseSettings):
         path = Path(self.STORAGE_LOCAL_PATH)
         if path.is_absolute():
             return str(path)
-        return str((PROJECT_ROOT / path).resolve())
+        # В Docker WORKDIR=/app и том смонтирован в /app/storage.
+        # PROJECT_ROOT в образе указывает на /, поэтому относительный
+        # "./storage" раньше попадал в /storage вне общего тома с backend.
+        cwd_candidate = (Path.cwd() / path).resolve()
+        root_candidate = (PROJECT_ROOT / path).resolve()
+        for candidate in (cwd_candidate, root_candidate):
+            if candidate.exists():
+                return str(candidate)
+        return str(cwd_candidate)
 
 
 @lru_cache

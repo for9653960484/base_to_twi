@@ -193,7 +193,7 @@ docker compose -f docker-compose.prod.yml up -d
 |--------|------|
 | Frontend | 5173 |
 | Backend | 8000 |
-| AI service | 8001 |
+| AI service | 8002 (снаружи; внутри контейнера 8001) |
 | PostgreSQL | 5432 |
 | Redis | 6379 |
 

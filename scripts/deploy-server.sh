@@ -15,6 +15,7 @@ git fetch origin "$BRANCH"
 git reset --hard "origin/$BRANCH"
 
 export IMAGE_BACKEND IMAGE_AI IMAGE_FRONTEND
+docker compose -f docker-compose.prod.yml down --remove-orphans || true
 docker compose -f docker-compose.prod.yml pull
 docker compose -f docker-compose.prod.yml up -d --remove-orphans
 

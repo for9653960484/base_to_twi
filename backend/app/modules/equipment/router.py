@@ -65,6 +65,16 @@ async def update_equipment(
     return await service.update(equipment_id, data)
 
 
+@router.delete("/{equipment_id}", status_code=204)
+async def delete_equipment(
+    equipment_id: UUID,
+    user: TokenPayload = Depends(require_roles("admin", "park_owner")),
+    service: EquipmentService = Depends(get_equipment_service),
+):
+    """Удалить единицу оборудования."""
+    await service.delete(equipment_id)
+
+
 @router.get("/{equipment_id}/relations", response_model=EquipmentRelations)
 async def get_equipment_relations(
     equipment_id: UUID,

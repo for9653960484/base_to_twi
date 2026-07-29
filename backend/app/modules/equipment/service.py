@@ -2,10 +2,11 @@ import math
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError
+from app.models.ai_task import AITask
 from app.models.equipment import Equipment
 from app.models.relations import (
     Document,
@@ -114,6 +115,16 @@ class EquipmentService:
         await self.db.flush()
         await self.db.refresh(equipment)
         return _to_response(equipment)
+
+    async def delete(self, equipment_id: UUID) -> None:
+        equipment = await self._get_or_raise(equipment_id)
+        for model in (WorkInstruction, TwiCourse, EquipmentCompetency):
+            await self.db.execute(delete(model).where(model.equipment_id == equipment_id))
+        await self.db.execute(
+            update(AITask).where(AITask.equipment_id == equipment_id).values(equipment_id=None)
+        )
+        await self.db.delete(equipment)
+        await self.db.flush()
 
     async def get_relations(self, equipment_id: UUID) -> EquipmentRelations:
         await self._get_or_raise(equipment_id)

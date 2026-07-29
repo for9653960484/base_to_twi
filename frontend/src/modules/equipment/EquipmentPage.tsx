@@ -53,9 +53,21 @@ export function EquipmentPage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await equipmentApi.delete(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      setEditing(null);
+      setShowForm(false);
+    },
+  });
+
   const saveError =
     (createMutation.isError && (createMutation.error as Error)?.message) ||
     (updateMutation.isError && (updateMutation.error as Error)?.message) ||
+    (deleteMutation.isError && (deleteMutation.error as Error)?.message) ||
     null;
 
   return (
@@ -68,6 +80,7 @@ export function EquipmentPage() {
               setEditing(null);
               createMutation.reset();
               updateMutation.reset();
+              deleteMutation.reset();
               setShowForm(true);
             }}
             style={btnPrimary}
@@ -101,9 +114,9 @@ export function EquipmentPage() {
         </div>
       )}
 
-      {(createMutation.isError || updateMutation.isError) && (
+      {(createMutation.isError || updateMutation.isError || deleteMutation.isError) && (
         <div style={{ color: 'var(--color-danger)', marginBottom: '1rem' }}>
-          {t('equipment.saveError')}
+          {deleteMutation.isError ? t('equipment.deleteError') : t('equipment.saveError')}
           {saveError ? `: ${saveError}` : ''}
         </div>
       )}
@@ -117,6 +130,7 @@ export function EquipmentPage() {
             setEditing(item);
             createMutation.reset();
             updateMutation.reset();
+            deleteMutation.reset();
             setShowForm(true);
           }}
         />
@@ -127,6 +141,7 @@ export function EquipmentPage() {
           key={editing?.id ?? 'new'}
           initial={editing}
           loading={createMutation.isPending || updateMutation.isPending}
+          deleting={deleteMutation.isPending}
           onClose={() => {
             setShowForm(false);
             setEditing(null);
@@ -138,6 +153,13 @@ export function EquipmentPage() {
               createMutation.mutate(formData);
             }
           }}
+          onDelete={
+            editing
+              ? () => {
+                  deleteMutation.mutate(editing.id);
+                }
+              : undefined
+          }
         />
       )}
     </div>

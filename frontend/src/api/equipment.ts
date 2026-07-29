@@ -18,4 +18,6 @@ export const equipmentApi = {
 
   update: (id: string, data: Partial<Equipment>) =>
     apiClient.patch<Equipment>(`/equipment/${id}`, data),
+
+  delete: (id: string) => apiClient.delete(`/equipment/${id}`),
 };

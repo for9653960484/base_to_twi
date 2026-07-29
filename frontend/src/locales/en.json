@@ -60,6 +60,8 @@
     "editTitle": "Edit Equipment",
     "loadError": "Failed to load equipment list",
     "saveError": "Failed to save equipment",
+    "deleteConfirm": "Delete this equipment from the list?",
+    "deleteError": "Failed to delete equipment",
     "active": "Active",
     "inactive": "Inactive"
   },

@@ -13,8 +13,8 @@ export type AIProcessingStatus = 'pending' | 'processing' | 'completed' | 'faile
 export interface Equipment {
   id: string;
   name: string;
-  serial_name?: string;
-  description?: string;
+  serial_name?: string | null;
+  description?: string | null;
   custom_attributes: Record<string, unknown>;
   is_active: boolean;
   created_at: string;

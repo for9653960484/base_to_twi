@@ -9,8 +9,11 @@ export const equipmentApi = {
 
   getRelations: (id: string) => apiClient.get(`/equipment/${id}/relations`),
 
-  create: (data: { name: string; serial_name?: string; description?: string }) =>
-    apiClient.post<Equipment>('/equipment', data),
+  create: (data: {
+    name: string;
+    serial_name?: string | null;
+    description?: string | null;
+  }) => apiClient.post<Equipment>('/equipment', data),
 
   update: (id: string, data: Partial<Equipment>) =>
     apiClient.patch<Equipment>(`/equipment/${id}`, data),

@@ -15,7 +15,7 @@ export default defineConfig({
     proxy: {
       '/api': {
         // Локально: 127.0.0.1:8080/8000; в Docker prod: http://backend:8000
-        target: process.env.VITE_PROXY_TARGET || 'http://127.0.0.1:8080',
+        target: process.env.VITE_PROXY_TARGET || 'http://127.0.0.1:8010',
         changeOrigin: true,
       },
     },

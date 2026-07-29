@@ -31,6 +31,8 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
             # без --pull: не тянуть base-образы заново, если уже есть локально
+            # зеркало PyPI: на части VPS pypi.org недоступен (pip: versions: none)
+            export PIP_INDEX_URL="${PIP_INDEX_URL:-https://mirror.yandex.ru/mirrors/pypi/simple/}"
             docker compose build
             docker compose up -d
             docker image prune -f

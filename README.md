@@ -189,13 +189,12 @@ docker compose -f docker-compose.prod.yml up -d
 
 Схема БД применяется при первом запуске `postgres` из `database/init/`.
 
-| Сервис | Порт |
-|--------|------|
+| Сервис | Порт на сервере (хост) |
+|--------|------------------------|
 | Frontend | 5173 |
-| Backend | 8000 |
-| AI service | 8002 (снаружи; внутри контейнера 8001) |
-| PostgreSQL | 5432 |
-| Redis | 6379 |
+| Backend | **8010** |
+| AI service | **8002** |
+| PostgreSQL / Redis | только внутри Docker (не снаружи) |
 
 ## API
 

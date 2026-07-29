@@ -1,5 +1,5 @@
-# Прод: образы собираются в GitHub Actions и пушатся в GHCR.
-# На сервере только pull + up (без pip/npm на VPS).
+# Прод: образы из GHCR. Хост-порты сдвинуты, чтобы не пересекаться с vmeste/другими сервисами.
+# Внутри сети compose сервисы по-прежнему на 8000/8001/5432/6379.
 
 services:
   postgres:
@@ -9,8 +9,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-base_to}
       POSTGRES_USER: ${POSTGRES_USER:-base_to}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-base_to_secret}
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+    # без ports: — только внутри docker-сети (избегаем конфликта с хостовым Postgres)
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d:ro
@@ -24,8 +23,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: base_to_redis
-    ports:
-      - "6379:6379"
+    # без ports: — только внутри docker-сети
     volumes:
       - redis_data:/data
     healthcheck:
@@ -44,7 +42,8 @@ services:
       REDIS_URL: redis://redis:6379/0
       AI_SERVICE_URL: http://ai-service:8001
     ports:
-      - "${API_PORT:-8000}:8000"
+      # 8010 снаружи: 8000 часто занят на том же VPS
+      - "${API_HOST_PORT:-8010}:8000"
     volumes:
       - storage_data:/app/storage
     depends_on:
@@ -63,7 +62,7 @@ services:
       POSTGRES_HOST: postgres
       REDIS_URL: redis://redis:6379/0
     ports:
-      # 8002 снаружи: на части серверов 8001 занят (например vmeste-api)
+      # 8002 снаружи: 8001 занят vmeste-api
       - "${AI_HOST_PORT:-8002}:8001"
     volumes:
       - storage_data:/app/storage
@@ -97,7 +96,7 @@ services:
     container_name: base_to_frontend
     env_file: .env
     ports:
-      - "5173:5173"
+      - "${FRONTEND_HOST_PORT:-5173}:5173"
     depends_on:
       - backend
     command: npm run dev -- --host 0.0.0.0

@@ -26,8 +26,8 @@ docker compose -f docker-compose.prod.yml up -d
 
 # 4. Проверка
 docker compose -f docker-compose.prod.yml ps
-curl http://localhost:8000/health
-curl http://localhost:8002/health   # AI (хост-порт; не путать с vmeste на 8001)
+curl http://localhost:8010/health
+curl http://localhost:8002/health   # AI (8001 на хосте занят vmeste)
 ```
 
 Локальная разработка по-прежнему через `docker-compose.yml` или `scripts/dev-all.ps1` (без GHCR).

@@ -149,6 +149,26 @@ async def get_ai_status(
     return await service.get_ai_status(document_id)
 
 
+@router.post("/{document_id}/generate-tech-cards", response_model=AIStatusResponse)
+async def generate_tech_cards(
+    document_id: UUID,
+    user: TokenPayload = Depends(require_roles("mentor", "park_owner", "admin")),
+    service: DocumentService = Depends(get_document_service),
+):
+    """Запустить AI-генерацию технологических карт из проиндексированного документа."""
+    return await service.generate_tech_cards(document_id, user.sub)
+
+
+@router.get("/{document_id}/generate-tech-cards/status", response_model=AIStatusResponse)
+async def get_tech_card_generation_status(
+    document_id: UUID,
+    user: TokenPayload = Depends(get_current_user),
+    service: DocumentService = Depends(get_document_service),
+):
+    """Статус последней задачи генерации тех. карт для документа."""
+    return await service.get_tech_card_generation_status(document_id)
+
+
 @router.post("/{document_id}/submit", response_model=MessageResponse)
 async def submit_for_approval(
     document_id: UUID,

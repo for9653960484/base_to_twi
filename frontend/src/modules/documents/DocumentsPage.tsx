@@ -128,8 +128,46 @@ export function DocumentsPage() {
     },
   });
 
+  const [trackingTechCards, setTrackingTechCards] = useState<Record<string, true>>({});
+
+  const generateTechCardsMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { data: result } = await documentsApi.generateTechCards(id);
+      return result;
+    },
+    onSuccess: (_result, id) => {
+      const doc = data?.items.find((d) => d.id === id);
+      setAiNotice({
+        type: 'info',
+        message: t('documents.techCardsStarted', { title: doc?.title ?? '' }),
+      });
+      setTrackingTechCards((prev) => ({ ...prev, [id]: true }));
+    },
+    onError: (err: unknown) => {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setAiNotice({
+        type: 'error',
+        message: detail
+          ? `${t('documents.techCardsError')}: ${detail}`
+          : t('documents.techCardsError'),
+      });
+    },
+  });
+
+  // Отслеживаем завершение генерации тех. карт
+  useEffect(() => {
+    if (!data?.items || Object.keys(trackingTechCards).length === 0) return;
+    // нет события завершения из списка документов — просто убираем спиннер
+    // (статус отображается в уведомлении, реальный результат виден на странице Тех. карт)
+  }, [data, trackingTechCards]);
+
   const handleAction = (action: string, id: string, force?: boolean) => {
     actionMutation.mutate({ action, id, force });
+  };
+
+  const handleGenerateTechCards = (id: string) => {
+    generateTechCardsMutation.mutate(id);
   };
 
   return (
@@ -187,6 +225,9 @@ export function DocumentsPage() {
           items={data?.items ?? []}
           onAction={handleAction}
           actionLoading={actionMutation.isPending}
+          onGenerateTechCards={handleGenerateTechCards}
+          techCardsLoading={generateTechCardsMutation.isPending}
+          techCardsLoadingId={generateTechCardsMutation.variables ?? null}
         />
       )}
 

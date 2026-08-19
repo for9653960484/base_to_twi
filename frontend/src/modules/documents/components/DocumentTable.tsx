@@ -8,6 +8,9 @@ interface Props {
   items: Document[];
   onAction: (action: string, id: string, force?: boolean) => void;
   actionLoading?: boolean;
+  onGenerateTechCards?: (id: string) => void;
+  techCardsLoading?: boolean;
+  techCardsLoadingId?: string | null;
 }
 
 function formatSize(bytes?: number): string {
@@ -17,7 +20,14 @@ function formatSize(bytes?: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export function DocumentTable({ items, onAction, actionLoading }: Props) {
+export function DocumentTable({
+  items,
+  onAction,
+  actionLoading,
+  onGenerateTechCards,
+  techCardsLoading,
+  techCardsLoadingId,
+}: Props) {
   const { t } = useTranslation();
 
   if (items.length === 0) {
@@ -94,6 +104,18 @@ export function DocumentTable({ items, onAction, actionLoading }: Props) {
                   {doc.ai_processing_status === 'processing' && (
                     <span style={processingLabel}>{t('documents.aiProcessing')}</span>
                   )}
+                  {doc.ai_processing_status === 'completed' && onGenerateTechCards && (
+                    <button
+                      style={techCardBtn}
+                      disabled={techCardsLoading && techCardsLoadingId === doc.id}
+                      onClick={() => onGenerateTechCards(doc.id)}
+                      title={t('documents.techCardsHint')}
+                    >
+                      {techCardsLoading && techCardsLoadingId === doc.id
+                        ? t('common.loading')
+                        : t('documents.generateTechCards')}
+                    </button>
+                  )}
                 </div>
               </td>
             </tr>
@@ -147,4 +169,15 @@ const processingLabel: CSSProperties = {
   fontSize: '0.8rem',
   color: 'var(--color-info)',
   fontStyle: 'italic',
+};
+
+const techCardBtn: CSSProperties = {
+  padding: '0.3rem 0.6rem',
+  border: '1px solid var(--color-primary)',
+  borderRadius: 'var(--radius)',
+  background: 'transparent',
+  color: 'var(--color-primary)',
+  fontSize: '0.8rem',
+  cursor: 'pointer',
+  fontWeight: 500,
 };

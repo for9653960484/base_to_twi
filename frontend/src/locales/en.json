@@ -95,7 +95,11 @@
     "aiStarted": "AI processing started for \"{{title}}\". Indexing into the knowledge base — this may take a few minutes.",
     "aiCompleted": "AI processing completed for \"{{title}}\". The document has been added to the knowledge base.",
     "aiFailed": "AI processing failed for \"{{title}}\". Check that ai-service and the Celery worker are running.",
-    "aiStartError": "Could not start AI processing. Start Redis (port 6379) and the Celery worker, then restart dev-all.ps1."
+    "aiStartError": "Could not start AI processing. Start Redis (port 6379) and the Celery worker, then restart dev-all.ps1.",
+    "generateTechCards": "Tech Cards",
+    "techCardsHint": "Generate maintenance tech cards from this document",
+    "techCardsStarted": "Tech card generation started for \"{{title}}\". Drafts will appear on the Tech Cards page in a few minutes.",
+    "techCardsError": "Failed to start tech card generation"
   },
   "knowledge": {
     "title": "Knowledge Base",

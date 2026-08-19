@@ -353,6 +353,92 @@ class DocumentService:
             maintenance_works_count=maintenance_count,
         )
 
+    async def generate_tech_cards(
+        self, document_id: UUID, user_id: UUID | None
+    ) -> AIStatusResponse:
+        """Запустить генерацию технологических карт из проиндексированного документа."""
+        doc, _ = await self._get_with_equipment(document_id)
+
+        if doc.ai_processing_status != AIProcessingStatus.COMPLETED.value:
+            raise AppException(
+                "Сначала выполните AI-обработку документа (кнопка «AI-обработка»)",
+                "NOT_INDEXED",
+                status_code=400,
+            )
+
+        ai_task = AITask(
+            task_type="extract_maintenance",
+            status="pending",
+            equipment_id=doc.equipment_id,
+            source_type="document",
+            source_id=doc.id,
+            input_payload={"document_id": str(doc.id)},
+            created_by=user_id,
+        )
+        self.db.add(ai_task)
+        await self.db.flush()
+
+        try:
+            dispatch_result = await self.ai_client.dispatch_extract_maintenance(
+                ai_task_id=str(ai_task.id),
+                document_id=str(doc.id),
+                equipment_id=str(doc.equipment_id),
+                created_by=str(user_id) if user_id else None,
+            )
+            ai_task.celery_task_id = dispatch_result.get("celery_task_id")
+            ai_task.status = "processing"
+            ai_task.started_at = datetime.now(timezone.utc)
+            await self.db.flush()
+        except AppException:
+            ai_task.status = "failed"
+            ai_task.error_message = "AI service unavailable"
+            await self.db.flush()
+            raise
+
+        return AIStatusResponse(
+            document_id=doc.id,
+            ai_processing_status=AIProcessingStatus.PROCESSING,
+            task_id=ai_task.id,
+            celery_task_id=ai_task.celery_task_id,
+        )
+
+    async def get_tech_card_generation_status(self, document_id: UUID) -> AIStatusResponse:
+        """Статус последней задачи генерации тех. карт для документа."""
+        doc, _ = await self._get_with_equipment(document_id)
+
+        task_result = await self.db.execute(
+            select(AITask)
+            .where(
+                AITask.source_type == "document",
+                AITask.source_id == document_id,
+                AITask.task_type == "extract_maintenance",
+            )
+            .order_by(AITask.created_at.desc())
+            .limit(1)
+        )
+        ai_task = task_result.scalar_one_or_none()
+
+        if not ai_task:
+            return AIStatusResponse(
+                document_id=doc.id,
+                ai_processing_status=AIProcessingStatus.PENDING,
+            )
+
+        tech_cards_count = None
+        if ai_task.result_payload:
+            tech_cards_count = ai_task.result_payload.get("tech_cards_count")
+
+        return AIStatusResponse(
+            document_id=doc.id,
+            ai_processing_status=AIProcessingStatus(ai_task.status)
+            if ai_task.status in AIProcessingStatus.__members__.values()
+            else AIProcessingStatus.PENDING,
+            task_id=ai_task.id,
+            celery_task_id=ai_task.celery_task_id,
+            error_message=ai_task.error_message,
+            maintenance_works_count=tech_cards_count,
+        )
+
     async def submit_for_approval(
         self, document_id: UUID, user_id: UUID | None
     ) -> None:

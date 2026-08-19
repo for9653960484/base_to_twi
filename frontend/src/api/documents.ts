@@ -32,4 +32,10 @@ export const documentsApi = {
     apiClient.post(`/documents/${id}/ai-process`, { force_reprocess: force }),
 
   getAiStatus: (id: string) => apiClient.get(`/documents/${id}/ai-status`),
+
+  generateTechCards: (id: string) =>
+    apiClient.post(`/documents/${id}/generate-tech-cards`),
+
+  getTechCardsGenerationStatus: (id: string) =>
+    apiClient.get(`/documents/${id}/generate-tech-cards/status`),
 };

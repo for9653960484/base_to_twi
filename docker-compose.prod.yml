@@ -65,6 +65,10 @@ services:
       POSTGRES_HOST: postgres
       REDIS_URL: redis://redis:6379/0
       STORAGE_LOCAL_PATH: /app/storage
+      # Опционально: прокси для вызовов OpenAI (задаётся в .env на сервере)
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-postgres,redis,ai-service,backend,localhost,127.0.0.1}
     ports:
       # 8002 снаружи: 8001 занят vmeste-api
       - "${AI_HOST_PORT:-8002}:8001"
@@ -86,6 +90,9 @@ services:
       POSTGRES_HOST: postgres
       REDIS_URL: redis://redis:6379/0
       STORAGE_LOCAL_PATH: /app/storage
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-postgres,redis,ai-service,backend,localhost,127.0.0.1}
     volumes:
       - storage_data:/app/storage
     depends_on:

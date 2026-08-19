@@ -99,6 +99,8 @@
     "generateTechCards": "Tech Cards",
     "techCardsHint": "Generate maintenance tech cards from this document",
     "techCardsStarted": "Tech card generation started for \"{{title}}\". Drafts will appear on the Tech Cards page in a few minutes.",
+    "techCardsCompleted": "Tech card generation for \"{{title}}\" completed. Cards created: {{count}}.",
+    "techCardsFailed": "Tech card generation failed",
     "techCardsError": "Failed to start tech card generation"
   },
   "knowledge": {

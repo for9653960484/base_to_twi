@@ -129,6 +129,52 @@ export function DocumentsPage() {
   });
 
   const [trackingTechCards, setTrackingTechCards] = useState<Record<string, true>>({});
+  const trackedTechCardIds = Object.keys(trackingTechCards);
+
+  useEffect(() => {
+    if (trackedTechCardIds.length === 0) return;
+
+    const timer = window.setInterval(async () => {
+      const ids = [...trackedTechCardIds];
+      for (const id of ids) {
+        try {
+          const { data: status } = await documentsApi.getTechCardsGenerationStatus(id);
+          const doc = data?.items.find((d) => d.id === id);
+          if (status.ai_processing_status === 'completed') {
+            setAiNotice({
+              type: 'success',
+              message: t('documents.techCardsCompleted', {
+                title: doc?.title ?? '',
+                count: status.maintenance_works_count ?? 0,
+              }),
+            });
+            setTrackingTechCards((prev) => {
+              const next = { ...prev };
+              delete next[id];
+              return next;
+            });
+            queryClient.invalidateQueries({ queryKey: ['tech-cards'] });
+          } else if (status.ai_processing_status === 'failed') {
+            setAiNotice({
+              type: 'error',
+              message: status.error_message
+                ? `${t('documents.techCardsFailed')}: ${status.error_message}`
+                : t('documents.techCardsFailed'),
+            });
+            setTrackingTechCards((prev) => {
+              const next = { ...prev };
+              delete next[id];
+              return next;
+            });
+          }
+        } catch {
+          // keep polling; transient API errors should not stop tracking
+        }
+      }
+    }, 3000);
+
+    return () => window.clearInterval(timer);
+  }, [data?.items, queryClient, t, trackedTechCardIds]);
 
   const generateTechCardsMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -154,13 +200,6 @@ export function DocumentsPage() {
       });
     },
   });
-
-  // Отслеживаем завершение генерации тех. карт
-  useEffect(() => {
-    if (!data?.items || Object.keys(trackingTechCards).length === 0) return;
-    // нет события завершения из списка документов — просто убираем спиннер
-    // (статус отображается в уведомлении, реальный результат виден на странице Тех. карт)
-  }, [data, trackingTechCards]);
 
   const handleAction = (action: string, id: string, force?: boolean) => {
     actionMutation.mutate({ action, id, force });

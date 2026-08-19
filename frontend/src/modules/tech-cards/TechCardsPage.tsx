@@ -28,6 +28,7 @@ export function TechCardsPage() {
       return data;
     },
     enabled: Boolean(equipmentId),
+    refetchInterval: equipmentId ? 5000 : false,
   });
 
   return (

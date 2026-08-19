@@ -430,9 +430,7 @@ class DocumentService:
 
         return AIStatusResponse(
             document_id=doc.id,
-            ai_processing_status=AIProcessingStatus(ai_task.status)
-            if ai_task.status in AIProcessingStatus.__members__.values()
-            else AIProcessingStatus.PENDING,
+            ai_processing_status=AIProcessingStatus(ai_task.status),
             task_id=ai_task.id,
             celery_task_id=ai_task.celery_task_id,
             error_message=ai_task.error_message,

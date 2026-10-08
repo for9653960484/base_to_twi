@@ -35,18 +35,14 @@ export function TechCardList({ items }: Props) {
                 <StatusBadge status={card.status} />
               </td>
               <td style={tdStyle}>
-                {card.status === 'published' ? (
-                  <a
-                    href={techCardsApi.exportPdfUrl(card.id)}
-                    style={linkBtn}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {t('techCards.exportPdf')}
-                  </a>
-                ) : (
-                  <span style={mutedBtn}>{t('techCards.exportPdf')}</span>
-                )}
+                <a
+                  href={techCardsApi.exportPdfUrl(card.id)}
+                  style={linkBtn}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {t('techCards.exportPdf')}
+                </a>
               </td>
             </tr>
           ))}
@@ -74,11 +70,6 @@ const linkBtn: CSSProperties = {
   fontSize: '0.875rem',
   color: 'var(--color-primary)',
   textDecoration: 'none',
-};
-
-const mutedBtn: CSSProperties = {
-  fontSize: '0.875rem',
-  color: 'var(--color-text-muted)',
 };
 
 const emptyStyle: CSSProperties = {

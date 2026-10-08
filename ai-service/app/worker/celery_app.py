@@ -9,6 +9,7 @@ celery_app = Celery(
     include=[
         "app.tasks.document_pipeline",
         "app.tasks.extract_maintenance",
+        "app.tasks.extract_safety",
         "app.tasks.generate_instruction",
         "app.tasks.generate_course",
         "app.tasks.generate_competencies",

@@ -81,6 +81,64 @@ def _write_template_file(path: Path) -> None:
     doc.save(str(path))
 
 
+def build_sample_tech_card_template() -> bytes:
+    """Образец DOCX-шаблона технологической карты с полями подстановки."""
+    doc = Document()
+    title = doc.add_heading(settings.APP_NAME, level=0)
+    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    for run in title.runs:
+        run.font.color.rgb = BRAND_PRIMARY
+
+    subtitle = doc.add_paragraph("Корпоративный бланк")
+    subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    doc.add_paragraph("{{GENERATED_AT}}").alignment = WD_ALIGN_PARAGRAPH.RIGHT
+
+    heading = doc.add_heading("Технологическая карта", level=1)
+    heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    equipment = doc.add_paragraph()
+    equipment.add_run("Оборудование: ").bold = True
+    equipment.add_run("{{EQUIPMENT_NAME}}")
+
+    name = doc.add_paragraph()
+    name.add_run("Наименование: ").bold = True
+    name.add_run("{{TITLE}}")
+
+    kind = doc.add_paragraph()
+    kind.add_run("Вид ТО: ").bold = True
+    kind.add_run("{{MAINTENANCE_TYPE}}")
+
+    doc.add_heading("Перечень работ", level=2)
+    doc.add_paragraph("{{WORK_ITEMS_BLOCK}}")
+
+    footer = doc.add_paragraph("Документ сформирован системой Base To")
+    footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    for run in footer.runs:
+        run.font.size = Pt(9)
+        run.font.color.rgb = RGBColor(0x66, 0x66, 0x66)
+
+    buffer = io.BytesIO()
+    doc.save(buffer)
+    return buffer.getvalue()
+
+
+def _work_items_plain(work_items: list[dict[str, Any]]) -> str:
+    if not work_items:
+        return "Не указаны"
+    lines: list[str] = []
+    for index, item in enumerate(work_items, start=1):
+        order = item.get("order") or index
+        description = str(item.get("description") or "—").strip()
+        tools = ", ".join(item.get("tools") or []) or "—"
+        safety = "; ".join(item.get("safety") or []) or "—"
+        control = item.get("control_params") or {}
+        control_text = "; ".join(f"{k}: {v}" for k, v in control.items()) if control else "—"
+        lines.append(
+            f"{order}. {description}. Инструменты: {tools}. Безопасность: {safety}. Контроль: {control_text}"
+        )
+    return "\n".join(lines)
+
+
 def _render_from_template(
     template_path: Path,
     *,
@@ -98,6 +156,7 @@ def _render_from_template(
         "{{TITLE}}": title,
         "{{GENERATED_AT}}": datetime.now(timezone.utc).strftime("%d.%m.%Y"),
         "{{WORK_ITEMS_TABLE}}": "",
+        "{{WORK_ITEMS_BLOCK}}": _work_items_plain(work_items),
     }
 
     for paragraph in doc.paragraphs:
@@ -113,7 +172,7 @@ def _render_from_template(
                         cell.text = cell.text.replace(key, value)
 
     # Добавляем строки работ во вторую таблицу или в первую таблицу после заголовка
-    if doc.tables:
+    if doc.tables and len(doc.tables[0].columns) >= 5:
         table = doc.tables[0]
         for item in work_items:
             tools = ", ".join(item.get("tools") or []) or "—"

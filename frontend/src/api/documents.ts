@@ -11,6 +11,8 @@ export const documentsApi = {
 
   get: (id: string) => apiClient.get<Document>(`/documents/${id}`),
 
+  delete: (id: string) => apiClient.delete(`/documents/${id}`),
+
   upload: (formData: FormData) =>
     apiClient.postForm<Document>('/documents/upload', formData, { timeout: 600_000 }),
 

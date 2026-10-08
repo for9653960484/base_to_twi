@@ -89,6 +89,16 @@ async def update_document(
     return await service.update(document_id, data)
 
 
+@router.delete("/{document_id}", status_code=204)
+async def delete_document(
+    document_id: UUID,
+    user: TokenPayload = Depends(require_roles("mentor", "park_owner", "admin")),
+    service: DocumentService = Depends(get_document_service),
+):
+    """Удалить документ, файл и результаты AI-оцифровки."""
+    await service.delete(document_id)
+
+
 @router.get("/{document_id}/download")
 async def download_document(
     document_id: UUID,

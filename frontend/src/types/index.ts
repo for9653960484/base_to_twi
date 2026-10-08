@@ -90,3 +90,38 @@ export interface TechCard {
   created_at: string;
   updated_at?: string;
 }
+
+export interface PpeItem {
+  name: string;
+  purpose: string;
+  mandatory: boolean;
+}
+
+export interface WorkConditions {
+  temperature: string;
+  humidity: string;
+  voltage: string;
+  other: { name: string; value: string }[];
+}
+
+export interface SafetySheet {
+  id: string;
+  equipment_id: string;
+  equipment_name?: string;
+  source_document_id?: string | null;
+  title: string;
+  ppe: PpeItem[];
+  work_conditions: WorkConditions;
+  notes?: string | null;
+  status: ContentStatus;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface SafetyGenerateStatus {
+  document_id: string;
+  ai_processing_status: AIProcessingStatus;
+  task_id?: string | null;
+  error_message?: string | null;
+  sheets_count?: number | null;
+}

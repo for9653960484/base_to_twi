@@ -7,6 +7,7 @@ TASK_MAP = {
     "document_pipeline": "app.tasks.document_pipeline.process_document",
     "document_parse": "app.tasks.document_pipeline.process_document",
     "extract_maintenance": "app.tasks.extract_maintenance.extract_maintenance_works",
+    "extract_safety": "app.tasks.extract_safety.extract_safety_sheet",
     "generate_instruction": "app.tasks.generate_instruction.generate_instruction",
     "generate_course": "app.tasks.generate_course.generate_course",
     "generate_competencies": "app.tasks.generate_competencies.generate_competencies",

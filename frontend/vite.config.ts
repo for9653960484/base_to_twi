@@ -14,8 +14,8 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        // Локально: 127.0.0.1:8080/8000; в Docker prod: http://backend:8000
-        target: process.env.VITE_PROXY_TARGET || 'http://127.0.0.1:8010',
+        // Локально backend на 8000. В Docker prod compose задаёт VITE_PROXY_TARGET=http://backend:8000
+        target: process.env.VITE_PROXY_TARGET || 'http://127.0.0.1:8000',
         changeOrigin: true,
         // Крупные PDF (до 50 MB) иначе могут оборваться по таймауту прокси
         timeout: 600_000,

@@ -19,7 +19,8 @@ CREATE TYPE ai_processing_status AS ENUM (
 
 CREATE TYPE ai_task_type AS ENUM (
     'document_parse', 'extract_maintenance', 'generate_instruction',
-    'generate_course', 'generate_competencies', 'qa_search', 'reindex'
+    'generate_course', 'generate_competencies', 'qa_search', 'reindex',
+    'extract_safety'
 );
 
 CREATE TYPE ai_task_status AS ENUM (
@@ -127,7 +128,7 @@ CREATE INDEX idx_equipment_custom ON equipment USING GIN (custom_attributes);
 CREATE TABLE brandbook_templates (
     id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     title       VARCHAR(255) NOT NULL,
-    template_type VARCHAR(50) NOT NULL,  -- instruction, course, tech_card
+    template_type VARCHAR(50) NOT NULL,  -- instruction, course, tech_card, safety_sheet
     file_path   VARCHAR(500) NOT NULL,
     version     INT NOT NULL DEFAULT 1,
     is_active   BOOLEAN NOT NULL DEFAULT TRUE,
@@ -205,6 +206,24 @@ CREATE TABLE tech_cards (
 );
 
 CREATE INDEX idx_tech_cards_equipment ON tech_cards(equipment_id, maintenance_type);
+
+-- ===================== ТЕХНИКА БЕЗОПАСНОСТИ =====================
+
+CREATE TABLE safety_sheets (
+    id                 UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    equipment_id       UUID NOT NULL REFERENCES equipment(id) ON DELETE CASCADE,
+    source_document_id UUID REFERENCES documents(id),
+    title              VARCHAR(500) NOT NULL,
+    ppe                JSONB NOT NULL DEFAULT '[]',
+    work_conditions    JSONB NOT NULL DEFAULT '{}',
+    notes              TEXT,
+    status             content_status NOT NULL DEFAULT 'draft',
+    created_by         UUID REFERENCES users(id),
+    created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_safety_sheets_equipment ON safety_sheets(equipment_id);
 
 CREATE TABLE tech_card_versions (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

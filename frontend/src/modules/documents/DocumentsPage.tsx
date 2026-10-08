@@ -6,6 +6,8 @@ import { equipmentApi } from '@/api/equipment';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { DocumentTable } from './components/DocumentTable';
 import { DocumentUploadForm } from './components/DocumentUploadForm';
+import { SafetyTemplatePanel } from './components/SafetyTemplatePanel';
+import { TechCardTemplatePanel } from './components/TechCardTemplatePanel';
 
 type AiNotice = {
   type: 'info' | 'success' | 'error';
@@ -128,76 +130,21 @@ export function DocumentsPage() {
     },
   });
 
-  const [trackingTechCards, setTrackingTechCards] = useState<Record<string, true>>({});
-  const trackedTechCardIds = Object.keys(trackingTechCards);
-
-  useEffect(() => {
-    if (trackedTechCardIds.length === 0) return;
-
-    const timer = window.setInterval(async () => {
-      const ids = [...trackedTechCardIds];
-      for (const id of ids) {
-        try {
-          const { data: status } = await documentsApi.getTechCardsGenerationStatus(id);
-          const doc = data?.items.find((d) => d.id === id);
-          if (status.ai_processing_status === 'completed') {
-            setAiNotice({
-              type: 'success',
-              message: t('documents.techCardsCompleted', {
-                title: doc?.title ?? '',
-                count: status.maintenance_works_count ?? 0,
-              }),
-            });
-            setTrackingTechCards((prev) => {
-              const next = { ...prev };
-              delete next[id];
-              return next;
-            });
-            queryClient.invalidateQueries({ queryKey: ['tech-cards'] });
-          } else if (status.ai_processing_status === 'failed') {
-            setAiNotice({
-              type: 'error',
-              message: status.error_message
-                ? `${t('documents.techCardsFailed')}: ${status.error_message}`
-                : t('documents.techCardsFailed'),
-            });
-            setTrackingTechCards((prev) => {
-              const next = { ...prev };
-              delete next[id];
-              return next;
-            });
-          }
-        } catch {
-          // keep polling; transient API errors should not stop tracking
-        }
-      }
-    }, 3000);
-
-    return () => window.clearInterval(timer);
-  }, [data?.items, queryClient, t, trackedTechCardIds]);
-
-  const generateTechCardsMutation = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { data: result } = await documentsApi.generateTechCards(id);
-      return result;
+      await documentsApi.delete(id);
+      return id;
     },
-    onSuccess: (_result, id) => {
-      const doc = data?.items.find((d) => d.id === id);
-      setAiNotice({
-        type: 'info',
-        message: t('documents.techCardsStarted', { title: doc?.title ?? '' }),
+    onSuccess: (id) => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      setTrackingAi((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
       });
-      setTrackingTechCards((prev) => ({ ...prev, [id]: true }));
     },
-    onError: (err: unknown) => {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setAiNotice({
-        type: 'error',
-        message: detail
-          ? `${t('documents.techCardsError')}: ${detail}`
-          : t('documents.techCardsError'),
-      });
+    onError: () => {
+      setAiNotice({ type: 'error', message: t('documents.deleteError') });
     },
   });
 
@@ -205,8 +152,10 @@ export function DocumentsPage() {
     actionMutation.mutate({ action, id, force });
   };
 
-  const handleGenerateTechCards = (id: string) => {
-    generateTechCardsMutation.mutate(id);
+  const handleDelete = (id: string) => {
+    const doc = data?.items.find((item) => item.id === id);
+    if (!window.confirm(t('documents.deleteConfirm', { title: doc?.title ?? '' }))) return;
+    deleteMutation.mutate(id);
   };
 
   return (
@@ -242,6 +191,9 @@ export function DocumentsPage() {
         </select>
       </div>
 
+      <SafetyTemplatePanel />
+      <TechCardTemplatePanel />
+
       {error && (
         <div style={{ color: 'var(--color-danger)', marginBottom: '1rem' }}>
           {t('documents.loadError')}
@@ -264,9 +216,8 @@ export function DocumentsPage() {
           items={data?.items ?? []}
           onAction={handleAction}
           actionLoading={actionMutation.isPending}
-          onGenerateTechCards={handleGenerateTechCards}
-          techCardsLoading={generateTechCardsMutation.isPending}
-          techCardsLoadingId={generateTechCardsMutation.variables ?? null}
+          onDelete={handleDelete}
+          deleteLoading={deleteMutation.isPending}
         />
       )}
 

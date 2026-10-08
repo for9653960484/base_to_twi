@@ -10,6 +10,7 @@ from app.core.database import Base
 AI_TASK_TYPE = ENUM(
     "document_parse", "extract_maintenance", "generate_instruction",
     "generate_course", "generate_competencies", "qa_search", "reindex",
+    "extract_safety",
     name="ai_task_type", create_type=False,
 )
 AI_TASK_STATUS = ENUM(

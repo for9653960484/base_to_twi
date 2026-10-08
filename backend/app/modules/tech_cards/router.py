@@ -61,10 +61,14 @@ async def export_tech_card(
         content, filename = await service.export_pdf(tech_card_id)
         media_type = "application/pdf"
     encoded = quote(filename)
+    fallback = "tech_card.docx" if format == "docx" else "tech_card.pdf"
+    disposition = "attachment" if format == "docx" else "inline"
     return Response(
         content=content,
         media_type=media_type,
-        headers={"Content-Disposition": f"attachment; filename=\"{encoded}\"; filename*=UTF-8''{encoded}"},
+        headers={
+            "Content-Disposition": f"{disposition}; filename=\"{fallback}\"; filename*=UTF-8''{encoded}",
+        },
     )
 
 

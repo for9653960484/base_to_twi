@@ -57,7 +57,8 @@ USER_PROMPT = """На основе приведённой технической
 - "safety" — обязательные меры безопасности для операции.
 - "control_params" — словарь измеряемых параметров: {{"напряжение": "220 В"}}, или пустой объект.
 - order — порядковый номер начиная с 1.
-- Если документ не содержит регламентов ТО — верни пустой массив [].
+- Ежедневный или сменный осмотр, проверка перед пуском, смазка по графику, еженедельное, ежемесячное, квартальное, полугодовое и годовое обслуживание — это регламенты ТО. На каждый такой период нужна отдельная карта.
+- Пустой массив допустим только если в тексте нет ни одного периодического осмотра, смазки или обслуживания.
 
 Документ: {title}
 
@@ -192,6 +193,163 @@ def _upsert_tech_card(
 # ---------------------------------------------------------------------------
 
 VALID_TYPES = {"annual", "semi_annual", "quarterly", "monthly", "weekly", "daily"}
+TYPE_ALIASES = (
+    ("ежеднев", "daily"),
+    ("сменн", "daily"),
+    ("еженедел", "weekly"),
+    ("ежемесяч", "monthly"),
+    ("квартал", "quarterly"),
+    ("полугод", "semi_annual"),
+    ("годов", "annual"),
+    ("daily", "daily"),
+    ("weekly", "weekly"),
+    ("monthly", "monthly"),
+    ("quarterly", "quarterly"),
+    ("semi_annual", "semi_annual"),
+    ("annual", "annual"),
+)
+
+
+def _normalize_type(raw: str) -> str:
+    value = raw.strip().lower().replace("-", "_").replace(" ", "_")
+    if value in VALID_TYPES:
+        return value
+    for alias, mapped in TYPE_ALIASES:
+        if alias in value:
+            return mapped
+    return ""
+
+# Регламент часто стоит в конце руководства. В модель уходят фрагменты,
+# где названы периоды обслуживания, а не первые 60 тысяч знаков.
+PROMPT_CHAR_BUDGET = 70_000
+PROMPT_HEAD_CHARS = 1_200
+SCHEDULE_MARKERS = (
+    "ежедневн",
+    "еженедел",
+    "ежемесяч",
+    "ежеквартал",
+    "полугодов",
+    "годовое техническ",
+    "годовой техническ",
+    "годового техническ",
+    "профилактическое техническое обслуживание",
+    "технический осмотр",
+    "карта смазки",
+)
+SCHEDULE_WEIGHTS = (
+    ("ежедневн", 4),
+    ("еженедел", 4),
+    ("ежемесяч", 4),
+    ("ежеквартал", 3),
+    ("полугодов", 3),
+    ("годовое техническ", 3),
+    ("годовой техническ", 3),
+    ("годового техническ", 3),
+)
+
+
+def _marker_spans(
+    text: str,
+    markers: tuple[str, ...],
+    *,
+    before: int,
+    after: int,
+    cluster_gap: int,
+) -> list[tuple[int, int, int]]:
+    low = text.lower()
+    hits: list[int] = []
+    for marker in markers:
+        start = 0
+        while True:
+            idx = low.find(marker, start)
+            if idx < 0:
+                break
+            hits.append(idx)
+            start = idx + len(marker)
+    if not hits:
+        return []
+    hits.sort()
+    spans: list[tuple[int, int, int]] = []
+    cluster_start = max(0, hits[0] - before)
+    cluster_end = min(len(text), hits[0] + after)
+    count = 1
+    last = hits[0]
+    for pos in hits[1:]:
+        if pos - last <= cluster_gap:
+            cluster_end = min(len(text), max(cluster_end, pos + after))
+            count += 1
+        else:
+            spans.append((cluster_start, cluster_end, count))
+            cluster_start = max(0, pos - before)
+            cluster_end = min(len(text), pos + after)
+            count = 1
+        last = pos
+    spans.append((cluster_start, cluster_end, count))
+    return spans
+
+
+def _covered_length(ranges: list[tuple[int, int]]) -> int:
+    if not ranges:
+        return 0
+    ordered = sorted(ranges)
+    total = 0
+    cur_start, cur_end = ordered[0]
+    for start, end in ordered[1:]:
+        if start <= cur_end:
+            cur_end = max(cur_end, end)
+        else:
+            total += cur_end - cur_start
+            cur_start, cur_end = start, end
+    return total + cur_end - cur_start
+
+
+def _span_score(fragment: str) -> int:
+    low = fragment.lower()
+    return sum(weight for marker, weight in SCHEDULE_WEIGHTS if marker in low)
+
+
+def select_prompt_text(full_text: str) -> str:
+    """Главы с периодами ТО в начале запроса, затем короткое название документа."""
+    if len(full_text) <= PROMPT_CHAR_BUDGET:
+        return full_text
+
+    spans = _marker_spans(
+        full_text, SCHEDULE_MARKERS, before=400, after=18_000, cluster_gap=4_500
+    )
+    ranked = sorted(
+        ((start, end, _span_score(full_text[start:end])) for start, end, _count in spans),
+        key=lambda item: (item[2], item[0]),
+        reverse=True,
+    )
+    chosen: list[tuple[int, int]] = []
+    for start, end, score in ranked:
+        if score < 3:
+            continue
+        if _covered_length(chosen) >= PROMPT_CHAR_BUDGET - PROMPT_HEAD_CHARS:
+            break
+        chosen.append((start, end))
+        if _covered_length(chosen) > PROMPT_CHAR_BUDGET - PROMPT_HEAD_CHARS:
+            chosen.pop()
+            room = PROMPT_CHAR_BUDGET - PROMPT_HEAD_CHARS - _covered_length(chosen)
+            if room > 2_000:
+                chosen.append((start, min(end, start + room)))
+            break
+
+    if not chosen:
+        return full_text[:PROMPT_CHAR_BUDGET]
+
+    ordered = sorted(chosen)
+    merged: list[tuple[int, int]] = []
+    for start, end in ordered:
+        if merged and start <= merged[-1][1] + 200:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+        else:
+            merged.append((start, end))
+    parts = [full_text[start:end].strip() for start, end in merged if end > start]
+    head = full_text[:PROMPT_HEAD_CHARS].strip()
+    if head:
+        parts.append(head)
+    return "\n\n[...]\n\n".join(part for part in parts if part)
 
 
 def _parse_llm_response(raw: str) -> list[dict]:
@@ -199,14 +357,21 @@ def _parse_llm_response(raw: str) -> list[dict]:
     if raw.startswith("```"):
         raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
     cards = json.loads(raw)
+    if isinstance(cards, dict):
+        for key in ("cards", "tech_cards", "items", "data"):
+            if isinstance(cards.get(key), list):
+                cards = cards[key]
+                break
     if not isinstance(cards, list):
         return []
 
     result = []
     for card in cards:
-        mt = card.get("maintenance_type", "").strip()
-        if mt not in VALID_TYPES:
-            logger.warning("Неизвестный maintenance_type: %s, пропускаем", mt)
+        if not isinstance(card, dict):
+            continue
+        mt = _normalize_type(str(card.get("maintenance_type", "")))
+        if not mt:
+            logger.warning("Неизвестный maintenance_type: %s, пропускаем", card.get("maintenance_type"))
             continue
         title = str(card.get("title", "")).strip()
         if not title:
@@ -214,6 +379,8 @@ def _parse_llm_response(raw: str) -> list[dict]:
         items = card.get("work_items", [])
         cleaned_items = []
         for idx, wi in enumerate(items):
+            if not isinstance(wi, dict):
+                continue
             cleaned_items.append({
                 "order": int(wi.get("order", idx + 1)),
                 "description": str(wi.get("description", "")).strip(),
@@ -261,20 +428,22 @@ def extract_maintenance_works(
         if not effective_equipment_id:
             raise ValueError("Не удалось определить equipment_id для документа")
 
-        # 2. Ограничиваем текст для промпта (gpt-4o: 128K токенов ≈ ~500K символов)
-        # Берём первые ~60 000 символов — достаточно для большинства регламентов
-        text_for_prompt = full_text[:60_000]
+        # 2. Начало документа и фрагменты с регламентом ТО.
+        # Главы обслуживания часто стоят после 60 тысяч знаков.
+        text_for_prompt = select_prompt_text(full_text)
 
         logger.info(
-            "Генерация тех. карт: document_id=%s, symbols=%d",
+            "Генерация тех. карт: document_id=%s, symbols=%d из %d",
             document_id,
             len(text_for_prompt),
+            len(full_text),
         )
 
         prompt = USER_PROMPT.format(title=title, text=text_for_prompt)
 
         # 3. Вызов LLM (тяжёлая модель — gpt-4o)
         raw = complete_sync(prompt, system=SYSTEM_PROMPT, model_tier="heavy")
+        logger.info("Ответ модели, первые 400 знаков: %s", raw[:400].replace("\n", " "))
 
         # 4. Парсинг ответа
         cards = _parse_llm_response(raw)

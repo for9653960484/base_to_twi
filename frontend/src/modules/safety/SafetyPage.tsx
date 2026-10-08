@@ -3,16 +3,17 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { documentsApi } from '@/api/documents';
 import { equipmentApi } from '@/api/equipment';
-import { techCardsApi } from '@/api/tech-cards';
+import { safetyApi, type SafetySheetUpdate } from '@/api/safety';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { TechCardList } from './components/TechCardList';
+import type { SafetySheet } from '@/types';
+import { SafetyForm } from './components/SafetyForm';
 
 type Notice = {
   type: 'info' | 'success' | 'error';
   message: string;
 };
 
-export function TechCardsPage() {
+export function SafetyPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [equipmentId, setEquipmentId] = useState('');
@@ -20,6 +21,7 @@ export function TechCardsPage() {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [trackingId, setTrackingId] = useState<string | null>(null);
   const [trackedTaskId, setTrackedTaskId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<SafetySheet | null>(null);
 
   const { data: equipmentList } = useQuery({
     queryKey: ['equipment', 'all'],
@@ -30,7 +32,7 @@ export function TechCardsPage() {
   });
 
   const { data: documents } = useQuery({
-    queryKey: ['documents', 'tech-cards', equipmentId],
+    queryKey: ['documents', 'safety', equipmentId],
     queryFn: async () => {
       const { data } = await documentsApi.list({
         equipment_id: equipmentId,
@@ -41,17 +43,15 @@ export function TechCardsPage() {
     enabled: Boolean(equipmentId),
   });
 
-  const { data, isLoading, error, isFetching } = useQuery({
-    queryKey: ['tech-cards', equipmentId],
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['safety', equipmentId],
     queryFn: async () => {
-      const { data } = await techCardsApi.list({
-        equipment_id: equipmentId,
+      const { data } = await safetyApi.list({
+        equipment_id: equipmentId || undefined,
         page_size: 100,
       });
       return data;
     },
-    enabled: Boolean(equipmentId),
-    refetchInterval: trackingId ? 3000 : false,
   });
 
   useEffect(() => {
@@ -63,9 +63,7 @@ export function TechCardsPage() {
 
   useEffect(() => {
     if (!documents || trackingId) return;
-    if (documents.length === 1) {
-      setDocumentId(documents[0].id);
-    }
+    if (documents.length === 1) setDocumentId(documents[0].id);
   }, [documents, trackingId]);
 
   useEffect(() => {
@@ -73,10 +71,8 @@ export function TechCardsPage() {
 
     const poll = async () => {
       try {
-        const { data: status } = await documentsApi.getTechCardsGenerationStatus(trackingId);
-        if (trackedTaskId && status.task_id && status.task_id !== trackedTaskId) {
-          return;
-        }
+        const { data: status } = await safetyApi.generationStatus(trackingId);
+        if (trackedTaskId && status.task_id && status.task_id !== trackedTaskId) return;
         const doc = documents?.find((item) => item.id === trackingId);
         if (status.ai_processing_status === 'pending' || status.ai_processing_status === 'processing') {
           return;
@@ -84,26 +80,26 @@ export function TechCardsPage() {
         if (status.ai_processing_status === 'completed') {
           setNotice({
             type: 'success',
-            message: t('techCards.generateCompleted', {
+            message: t('safety.generateCompleted', {
               title: doc?.title ?? '',
-              count: status.maintenance_works_count ?? 0,
+              count: status.sheets_count ?? 0,
             }),
           });
           setTrackingId(null);
           setTrackedTaskId(null);
-          queryClient.invalidateQueries({ queryKey: ['tech-cards', equipmentId] });
+          queryClient.invalidateQueries({ queryKey: ['safety', equipmentId] });
         } else if (status.ai_processing_status === 'failed') {
           setNotice({
             type: 'error',
             message: status.error_message
-              ? `${t('techCards.generateFailed')}: ${status.error_message}`
-              : t('techCards.generateFailed'),
+              ? `${t('safety.generateFailed')}: ${status.error_message}`
+              : t('safety.generateFailed'),
           });
           setTrackingId(null);
           setTrackedTaskId(null);
         }
       } catch {
-        // keep polling; a short API error should not stop tracking
+        // keep polling
       }
     };
 
@@ -111,52 +107,54 @@ export function TechCardsPage() {
     const timer = window.setInterval(() => {
       void poll();
     }, 3000);
-
     return () => window.clearInterval(timer);
   }, [documents, equipmentId, queryClient, t, trackedTaskId, trackingId]);
 
   const generateMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { data: result } = await documentsApi.generateTechCards(id);
+      const { data: result } = await safetyApi.generate(id);
       return result;
     },
     onSuccess: (result, id) => {
       const doc = documents?.find((item) => item.id === id);
       setNotice({
         type: 'info',
-        message: t('techCards.generateStarted', { title: doc?.title ?? '' }),
+        message: t('safety.generateStarted', { title: doc?.title ?? '' }),
       });
       setTrackingId(id);
       setTrackedTaskId(result.task_id ?? null);
     },
     onError: (err: unknown) => {
-      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data
-        ?.detail;
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
       setNotice({
         type: 'error',
-        message: detail
-          ? `${t('techCards.generateError')}: ${detail}`
-          : t('techCards.generateError'),
+        message: detail ? `${t('safety.generateError')}: ${detail}` : t('safety.generateError'),
       });
+      setTrackingId(null);
+      setTrackedTaskId(null);
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: SafetySheetUpdate }) => {
+      const { data: result } = await safetyApi.update(id, data);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['safety'] });
+      setEditing(null);
     },
   });
 
   const readyDocuments = documents ?? [];
+  const busy = generateMutation.isPending || Boolean(trackingId);
 
   return (
     <div>
-      <PageHeader title={t('nav.techCards')} />
+      <PageHeader title={t('nav.safety')} />
 
-      <p style={{ color: 'var(--color-text-muted)', marginBottom: '1rem' }}>
-        {t('techCards.hint')}
-      </p>
-
-      <select
-        value={equipmentId}
-        onChange={(e) => setEquipmentId(e.target.value)}
-        style={selectStyle}
-      >
-        <option value="">{t('techCards.selectEquipment')}</option>
+      <select value={equipmentId} onChange={(e) => setEquipmentId(e.target.value)} style={selectStyle}>
+        <option value="">{t('safety.selectEquipment')}</option>
         {equipmentList?.map((eq) => (
           <option key={eq.id} value={eq.id}>
             {eq.name}
@@ -164,22 +162,16 @@ export function TechCardsPage() {
         ))}
       </select>
 
-      {!equipmentId && (
-        <div style={placeholderStyle}>{t('techCards.pickEquipment')}</div>
-      )}
-
       {equipmentId && (
         <div style={generateRow}>
           <select
             value={documentId}
             onChange={(e) => setDocumentId(e.target.value)}
             style={selectStyle}
-            disabled={readyDocuments.length === 0 || Boolean(trackingId)}
+            disabled={readyDocuments.length === 0 || busy}
           >
             <option value="">
-              {readyDocuments.length === 0
-                ? t('techCards.noIndexedDocuments')
-                : t('techCards.selectDocument')}
+              {readyDocuments.length === 0 ? t('safety.noIndexedDocuments') : t('safety.selectDocument')}
             </option>
             {readyDocuments.map((doc) => (
               <option key={doc.id} value={doc.id}>
@@ -189,37 +181,29 @@ export function TechCardsPage() {
           </select>
           <button
             type="button"
-            style={{
-              ...generateBtn,
-              ...(!documentId || generateMutation.isPending || trackingId ? generateBtnDisabled : {}),
-            }}
-            disabled={generateMutation.isPending || Boolean(trackingId) || readyDocuments.length === 0}
+            style={{ ...generateBtn, ...(busy || readyDocuments.length === 0 ? disabledBtn : {}) }}
+            disabled={busy || readyDocuments.length === 0}
             onClick={() => {
               if (!documentId) {
-                setNotice({ type: 'error', message: t('techCards.pickDocument') });
+                setNotice({ type: 'error', message: t('safety.pickDocument') });
                 return;
               }
               const doc = readyDocuments.find((item) => item.id === documentId);
               setNotice({
                 type: 'info',
-                message: t('techCards.generateStarted', { title: doc?.title ?? '' }),
+                message: t('safety.generateStarted', { title: doc?.title ?? '' }),
               });
               generateMutation.mutate(documentId);
             }}
           >
-            {generateMutation.isPending || trackingId
-              ? t('techCards.generating')
-              : t('techCards.generate')}
+            {busy ? t('safety.generating') : t('safety.generate')}
           </button>
-          {!trackingId && readyDocuments.length > 0 && !documentId && (
-            <span style={hintStyle}>{t('techCards.pickDocument')}</span>
-          )}
         </div>
       )}
 
       {trackingId && (
         <div style={progressStyle} role="status">
-          {t('techCards.generating')}
+          {t('safety.generating')}
         </div>
       )}
 
@@ -232,27 +216,74 @@ export function TechCardsPage() {
         </div>
       )}
 
-      {equipmentId && isLoading && (
+      {isLoading && (
         <p style={{ color: 'var(--color-text-muted)', marginTop: '1rem' }}>{t('common.loading')}</p>
       )}
-
-      {equipmentId && error && (
-        <p style={{ color: 'var(--color-danger)', marginTop: '1rem' }}>{t('techCards.loadError')}</p>
+      {error && (
+        <p style={{ color: 'var(--color-danger)', marginTop: '1rem' }}>{t('safety.loadError')}</p>
+      )}
+      {updateMutation.isError && (
+        <p style={{ color: 'var(--color-danger)', marginTop: '1rem' }}>{t('safety.saveError')}</p>
+      )}
+      {data && !isLoading && (
+        <div style={{ marginTop: '1rem', overflowX: 'auto' }}>
+          {data.items.length === 0 ? (
+            <div style={placeholderStyle}>{t('safety.noSheets')}</div>
+          ) : (
+            <table style={tableStyle}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--color-border)', textAlign: 'left' }}>
+                  <th style={thStyle}>{t('safety.colTitle')}</th>
+                  <th style={thStyle}>{t('safety.equipment')}</th>
+                  <th style={thStyle}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.items.map((sheet) => (
+                  <SafetyRow key={sheet.id} sheet={sheet} onEdit={setEditing} />
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       )}
 
-      {equipmentId && data && !isLoading && (
-        <>
-          {isFetching && trackingId && (
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', marginTop: '1rem' }}>
-              {t('techCards.generating')}
-            </p>
-          )}
-          <div style={{ marginTop: '1rem' }}>
-            <TechCardList items={data.items} />
-          </div>
-        </>
+      {editing && (
+        <SafetyForm
+          key={editing.id}
+          initial={editing}
+          equipment={equipmentList ?? []}
+          loading={updateMutation.isPending}
+          onClose={() => {
+            setEditing(null);
+            updateMutation.reset();
+          }}
+          onSubmit={(formData) => updateMutation.mutate({ id: editing.id, data: formData })}
+        />
       )}
     </div>
+  );
+}
+
+function SafetyRow({ sheet, onEdit }: { sheet: SafetySheet; onEdit: (sheet: SafetySheet) => void }) {
+  const { t } = useTranslation();
+  return (
+    <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+      <td style={tdStyle}>
+        <strong>{sheet.title}</strong>
+      </td>
+      <td style={tdStyle}>{sheet.equipment_name || '—'}</td>
+      <td style={tdStyle}>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <button type="button" onClick={() => onEdit(sheet)} style={editBtn}>
+            {t('common.edit')}
+          </button>
+          <a href={safetyApi.exportPdfUrl(sheet.id)} style={pdfLink} target="_blank" rel="noreferrer">
+            {t('safety.downloadPdf')}
+          </a>
+        </div>
+      </td>
+    </tr>
   );
 }
 
@@ -289,15 +320,7 @@ const generateBtn: CSSProperties = {
   cursor: 'pointer',
 };
 
-const generateBtnDisabled: CSSProperties = {
-  opacity: 0.55,
-  cursor: 'not-allowed',
-};
-
-const hintStyle: CSSProperties = {
-  color: 'var(--color-text-muted)',
-  fontSize: '0.9rem',
-};
+const disabledBtn: CSSProperties = { opacity: 0.55, cursor: 'not-allowed' };
 
 const progressStyle: CSSProperties = {
   marginTop: '1rem',
@@ -315,7 +338,6 @@ function noticeStyle(type: Notice['type']): CSSProperties {
     success: { bg: '#d1fae5', border: '#6ee7b7', text: '#065f46' },
     error: { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b' },
   }[type];
-
   return {
     display: 'flex',
     alignItems: 'center',
@@ -327,7 +349,6 @@ function noticeStyle(type: Notice['type']): CSSProperties {
     border: `1px solid ${palette.border}`,
     background: palette.bg,
     color: palette.text,
-    fontSize: '0.95rem',
   };
 }
 
@@ -337,6 +358,32 @@ const noticeDismissBtn: CSSProperties = {
   borderRadius: 'var(--radius)',
   background: 'transparent',
   color: 'inherit',
+};
+
+const tableStyle: CSSProperties = {
+  width: '100%',
+  borderCollapse: 'collapse',
+  background: 'var(--color-surface)',
+};
+
+const thStyle: CSSProperties = {
+  padding: '0.75rem',
+  fontSize: '0.875rem',
+  color: 'var(--color-text-muted)',
+};
+
+const tdStyle: CSSProperties = { padding: '0.75rem', verticalAlign: 'middle' };
+
+const editBtn: CSSProperties = {
+  padding: '0.35rem 0.75rem',
+  border: '1px solid var(--color-border)',
+  borderRadius: 'var(--radius)',
+  background: 'transparent',
   fontSize: '0.85rem',
-  flexShrink: 0,
+};
+
+const pdfLink: CSSProperties = {
+  fontSize: '0.875rem',
+  color: 'var(--color-primary)',
+  textDecoration: 'none',
 };

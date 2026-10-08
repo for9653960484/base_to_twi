@@ -1,4 +1,5 @@
 import re
+import shutil
 from pathlib import Path
 from uuid import UUID
 
@@ -86,6 +87,26 @@ class FileStorage:
         if not str(full).startswith(str(self.base_path.resolve())):
             raise ValueError("Invalid file path")
         return full
+
+    def delete_document_files(
+        self,
+        equipment_id: UUID,
+        document_id: UUID,
+        relative_paths: list[str],
+    ) -> None:
+        """Удалить каталог документа и отдельные файлы версий, если они лежат вне него."""
+        root = (self.base_path / "documents" / str(equipment_id) / str(document_id)).resolve()
+        base = self.base_path.resolve()
+        if root.is_relative_to(base) and root.exists():
+            shutil.rmtree(root)
+
+        for relative in relative_paths:
+            try:
+                full = self.resolve_path(relative)
+            except ValueError:
+                continue
+            if full.is_file():
+                full.unlink()
 
     def exists(self, relative_path: str) -> bool:
         try:

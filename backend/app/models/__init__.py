@@ -2,6 +2,7 @@ from app.models.ai_task import AITask
 from app.models.brandbook import BrandbookTemplate
 from app.models.document import Document, DocumentVersion, DocumentVersionHistory
 from app.models.equipment import Equipment
+from app.models.safety import SafetySheet
 from app.models.tech_card import TechCard
 from app.models.relations import (
     EquipmentCompetency,
@@ -17,6 +18,7 @@ __all__ = [
     "Document",
     "DocumentVersion",
     "DocumentVersionHistory",
+    "SafetySheet",
     "TechCard",
     "WorkInstruction",
     "TwiCourse",

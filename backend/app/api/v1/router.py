@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.modules.equipment.router import router as equipment_router
 from app.modules.documents.router import router as documents_router
+from app.modules.safety.router import router as safety_router
 from app.modules.tech_cards.router import router as tech_cards_router
 from app.modules.maintenance_calendar.router import router as calendar_router
 from app.modules.instructions.router import router as instructions_router
@@ -18,6 +19,7 @@ api_router = APIRouter()
 api_router.include_router(equipment_router, prefix="/equipment", tags=["Equipment"])
 api_router.include_router(documents_router, prefix="/documents", tags=["Documents"])
 api_router.include_router(tech_cards_router, prefix="/tech-cards", tags=["Tech Cards"])
+api_router.include_router(safety_router, prefix="/safety", tags=["Safety"])
 api_router.include_router(calendar_router, prefix="/maintenance-calendar", tags=["Maintenance Calendar"])
 api_router.include_router(instructions_router, prefix="/instructions", tags=["Instructions"])
 api_router.include_router(courses_router, prefix="/courses", tags=["TWI Courses"])

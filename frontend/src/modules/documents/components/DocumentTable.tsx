@@ -8,9 +8,8 @@ interface Props {
   items: Document[];
   onAction: (action: string, id: string, force?: boolean) => void;
   actionLoading?: boolean;
-  onGenerateTechCards?: (id: string) => void;
-  techCardsLoading?: boolean;
-  techCardsLoadingId?: string | null;
+  onDelete?: (id: string) => void;
+  deleteLoading?: boolean;
 }
 
 function formatSize(bytes?: number): string {
@@ -24,9 +23,8 @@ export function DocumentTable({
   items,
   onAction,
   actionLoading,
-  onGenerateTechCards,
-  techCardsLoading,
-  techCardsLoadingId,
+  onDelete,
+  deleteLoading,
 }: Props) {
   const { t } = useTranslation();
 
@@ -104,16 +102,14 @@ export function DocumentTable({
                   {doc.ai_processing_status === 'processing' && (
                     <span style={processingLabel}>{t('documents.aiProcessing')}</span>
                   )}
-                  {doc.ai_processing_status === 'completed' && onGenerateTechCards && (
+                  {onDelete && (
                     <button
-                      style={techCardBtn}
-                      disabled={techCardsLoading && techCardsLoadingId === doc.id}
-                      onClick={() => onGenerateTechCards(doc.id)}
-                      title={t('documents.techCardsHint')}
+                      type="button"
+                      style={deleteBtn}
+                      disabled={deleteLoading || actionLoading}
+                      onClick={() => onDelete(doc.id)}
                     >
-                      {techCardsLoading && techCardsLoadingId === doc.id
-                        ? t('common.loading')
-                        : t('documents.generateTechCards')}
+                      {t('common.delete')}
                     </button>
                   )}
                 </div>
@@ -171,13 +167,13 @@ const processingLabel: CSSProperties = {
   fontStyle: 'italic',
 };
 
-const techCardBtn: CSSProperties = {
+const deleteBtn: CSSProperties = {
   padding: '0.3rem 0.6rem',
-  border: '1px solid var(--color-primary)',
+  border: '1px solid var(--color-danger, #dc2626)',
   borderRadius: 'var(--radius)',
   background: 'transparent',
-  color: 'var(--color-primary)',
+  color: 'var(--color-danger, #dc2626)',
   fontSize: '0.8rem',
   cursor: 'pointer',
-  fontWeight: 500,
 };
+

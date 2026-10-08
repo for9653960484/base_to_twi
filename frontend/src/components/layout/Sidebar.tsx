@@ -6,6 +6,7 @@ const navItems = [
   { to: '/equipment', key: 'equipment' },
   { to: '/documents', key: 'documents' },
   { to: '/tech-cards', key: 'techCards' },
+  { to: '/safety', key: 'safety' },
   { to: '/instructions', key: 'instructions' },
   { to: '/courses', key: 'courses' },
   { to: '/competencies', key: 'competencies' },

@@ -1,11 +1,12 @@
 import math
+import re
 from pathlib import Path
 from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import AppException, NotFoundError
+from app.core.exceptions import NotFoundError
 from app.models.brandbook import BrandbookTemplate
 from app.models.equipment import Equipment
 from app.models.tech_card import TechCard
@@ -118,7 +119,6 @@ class TechCardService:
 
     async def export_docx(self, tech_card_id: UUID) -> tuple[bytes, str]:
         card, eq_name = await self._fetch_row(tech_card_id)
-        self._ensure_exportable(card)
         template_path = await self._active_template_path()
         content = render_tech_card_docx(
             Path(template_path),
@@ -127,38 +127,27 @@ class TechCardService:
             maintenance_type=card.maintenance_type,
             work_items=card.work_items or [],
         )
-        filename = f"tech_card_{self._safe_filename(card, tech_card_id)}.docx"
+        filename = f"{self._safe_filename(card, tech_card_id)}.docx"
         return content, filename
 
     async def export_pdf(self, tech_card_id: UUID) -> tuple[bytes, str]:
         card, eq_name = await self._fetch_row(tech_card_id)
-        self._ensure_exportable(card)
         content = render_tech_card_pdf(
             equipment_name=eq_name or str(card.equipment_id),
             title=card.title,
             maintenance_type=card.maintenance_type,
             work_items=card.work_items or [],
+            template_path=await self._uploaded_template_path(),
         )
-        filename = f"tech_card_{self._safe_filename(card, tech_card_id)}.pdf"
+        filename = f"{self._safe_filename(card, tech_card_id)}.pdf"
         return content, filename
-
-    def _ensure_exportable(self, card: TechCard) -> None:
-        if card.status != ContentStatus.PUBLISHED.value:
-            raise AppException(
-                "Технологическая карта не согласована и недоступна для выгрузки",
-                code="NOT_APPROVED",
-                status_code=403,
-            )
 
     @staticmethod
     def _safe_filename(card: TechCard, tech_card_id: UUID) -> str:
-        safe_name = "".join(
-            c if ord(c) < 128 and (c.isalnum() or c in " _-") else "_"
-            for c in card.title
-        )[:60].strip("_ ")
-        return safe_name or str(tech_card_id)[:8]
+        safe_name = re.sub(r'[\\/:*?"<>|]+', " ", card.title or "").strip()
+        return (safe_name[:80] or str(tech_card_id)[:8])
 
-    async def _active_template_path(self) -> Path:
+    async def _uploaded_template_path(self) -> Path | None:
         result = await self.db.execute(
             select(BrandbookTemplate)
             .where(
@@ -169,12 +158,17 @@ class TechCardService:
             .limit(1)
         )
         template = result.scalar_one_or_none()
-        if template:
-            from app.core.config import settings
+        if template is None:
+            return None
+        from app.core.config import settings
 
-            path = Path(settings.storage_local_path_resolved) / template.file_path
-            if path.is_file():
-                return path
+        path = Path(settings.storage_local_path_resolved) / template.file_path
+        return path if path.is_file() else None
+
+    async def _active_template_path(self) -> Path:
+        uploaded = await self._uploaded_template_path()
+        if uploaded is not None:
+            return uploaded
         return ensure_default_tech_card_template()
 
     async def _fetch_row(self, tech_card_id: UUID) -> tuple[TechCard, str]:

@@ -8,5 +8,6 @@ class BrandbookTemplateResponse(BaseModel):
     title: str
     template_type: str
     file_path: str
+    file_name: str
     version: int
     is_active: bool

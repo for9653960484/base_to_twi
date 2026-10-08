@@ -3,6 +3,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { EquipmentPage } from '@/modules/equipment/EquipmentPage';
 import { DocumentsPage } from '@/modules/documents/DocumentsPage';
 import { TechCardsPage } from '@/modules/tech-cards/TechCardsPage';
+import { SafetyPage } from '@/modules/safety/SafetyPage';
 import { InstructionsPage } from '@/modules/instructions/InstructionsPage';
 import { CoursesPage } from '@/modules/courses/CoursesPage';
 import { CompetenciesPage } from '@/modules/competencies/CompetenciesPage';
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="equipment" element={<EquipmentPage />} />
         <Route path="documents" element={<DocumentsPage />} />
         <Route path="tech-cards" element={<TechCardsPage />} />
+        <Route path="safety" element={<SafetyPage />} />
         <Route path="instructions" element={<InstructionsPage />} />
         <Route path="courses" element={<CoursesPage />} />
         <Route path="competencies" element={<CompetenciesPage />} />

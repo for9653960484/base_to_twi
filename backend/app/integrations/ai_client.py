@@ -54,6 +54,27 @@ class AIServiceClient:
         }
         return await self._post_task(payload)
 
+    async def dispatch_extract_safety(
+        self,
+        ai_task_id: str,
+        document_id: str,
+        equipment_id: str,
+        created_by: str | None = None,
+    ) -> dict[str, Any]:
+        payload = {
+            "task_type": "extract_safety",
+            "equipment_id": equipment_id,
+            "source_type": "document",
+            "source_id": document_id,
+            "input_payload": {
+                "ai_task_id": ai_task_id,
+                "document_id": document_id,
+                "equipment_id": equipment_id,
+                "created_by": created_by,
+            },
+        }
+        return await self._post_task(payload)
+
     async def get_celery_status(self, celery_task_id: str) -> dict[str, Any]:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(f"{self.base_url}/tasks/{celery_task_id}")

@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import UploadFile
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -14,6 +14,8 @@ from app.integrations.ai_client import AIServiceClient, get_ai_client
 from app.models.ai_task import AITask
 from app.models.document import Document, DocumentVersion, DocumentVersionHistory
 from app.models.equipment import Equipment
+from app.models.safety import SafetySheet
+from app.models.tech_card import TechCard
 from app.shared.schemas import AIProcessingStatus, ContentStatus, PaginatedResponse
 from app.shared.storage import FileStorage
 from app.modules.documents.schemas import (
@@ -107,6 +109,62 @@ class DocumentService:
     async def get(self, document_id: UUID) -> DocumentUploadResponse:
         doc, eq_name = await self._get_with_equipment(document_id)
         return _to_response(doc, eq_name)
+
+    async def delete(self, document_id: UUID) -> None:
+        """Удалить документ, файлы всех версий и AI-оцифровку (чанки, задачи)."""
+        doc, _eq_name = await self._get_with_equipment(document_id)
+        equipment_id = doc.equipment_id
+
+        versions = (
+            await self.db.execute(
+                select(DocumentVersion).where(DocumentVersion.document_id == document_id)
+            )
+        ).scalars().all()
+        file_paths = [v.file_path for v in versions if v.file_path]
+        if doc.file_path and doc.file_path not in file_paths:
+            file_paths.append(doc.file_path)
+
+        doc.current_version_id = None
+        await self.db.flush()
+
+        await self.db.execute(
+            delete(DocumentVersionHistory).where(
+                DocumentVersionHistory.document_id == document_id
+            )
+        )
+        await self.db.execute(
+            text(
+                """
+                DELETE FROM knowledge_chunks
+                WHERE source_type = CAST('document' AS knowledge_source_type)
+                  AND source_id = :doc_id
+                """
+            ),
+            {"doc_id": document_id},
+        )
+        await self.db.execute(delete(AITask).where(AITask.source_id == document_id))
+        await self.db.execute(
+            update(TechCard)
+            .where(TechCard.source_document_id == document_id)
+            .values(source_document_id=None)
+        )
+        await self.db.execute(
+            update(SafetySheet)
+            .where(SafetySheet.source_document_id == document_id)
+            .values(source_document_id=None)
+        )
+        await self.db.execute(
+            update(DocumentVersion)
+            .where(DocumentVersion.document_id == document_id)
+            .values(parent_version_id=None)
+        )
+        await self.db.execute(
+            delete(DocumentVersion).where(DocumentVersion.document_id == document_id)
+        )
+        await self.db.delete(doc)
+        await self.db.flush()
+
+        self.storage.delete_document_files(equipment_id, document_id, file_paths)
 
     async def upload(
         self,

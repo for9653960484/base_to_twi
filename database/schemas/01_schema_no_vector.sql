@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ===================== ENUMS =====================
 
 CREATE TYPE content_status AS ENUM (
-    'draft', 'pending_approval', 'published', 'archived'
+    'draft', 'pending_approval', 'published', 'archived', 'editing', 'approved'
 );
 
 CREATE TYPE maintenance_type AS ENUM (

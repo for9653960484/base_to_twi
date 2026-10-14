@@ -7,6 +7,8 @@ type ContentStatus =
   | 'pending_approval'
   | 'published'
   | 'archived'
+  | 'editing'
+  | 'approved'
   | 'assigned'
   | 'in_progress'
   | 'completed'

@@ -2,7 +2,7 @@ from typing import Literal
 from uuid import UUID
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, File, Query, UploadFile
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -56,18 +56,52 @@ async def export_tech_card(
 ):
     if format == "docx":
         content, filename = await service.export_docx(tech_card_id)
-        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        media_type = (
+            "application/msword"
+            if filename.lower().endswith(".doc")
+            else "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+        fallback = "tech_card.doc" if filename.lower().endswith(".doc") else "tech_card.docx"
+        disposition = "attachment"
     else:
         content, filename = await service.export_pdf(tech_card_id)
         media_type = "application/pdf"
+        fallback = "tech_card.pdf"
+        disposition = "inline"
     encoded = quote(filename)
-    fallback = "tech_card.docx" if format == "docx" else "tech_card.pdf"
-    disposition = "attachment" if format == "docx" else "inline"
     return Response(
         content=content,
         media_type=media_type,
         headers={
             "Content-Disposition": f"{disposition}; filename=\"{fallback}\"; filename*=UTF-8''{encoded}",
+        },
+    )
+
+
+@router.post("/{tech_card_id}/edited-file", response_model=TechCardResponse)
+async def upload_edited_tech_card(
+    tech_card_id: UUID,
+    file: UploadFile = File(...),
+    user: TokenPayload = Depends(get_current_user),
+    service: TechCardService = Depends(get_tech_card_service),
+):
+    content = await file.read()
+    return await service.save_edited_file(tech_card_id, file.filename or "", content)
+
+
+@router.post("/{tech_card_id}/form-pdf")
+async def form_tech_card_pdf(
+    tech_card_id: UUID,
+    user: TokenPayload = Depends(get_current_user),
+    service: TechCardService = Depends(get_tech_card_service),
+):
+    content, filename = await service.form_pdf(tech_card_id)
+    encoded = quote(filename)
+    return Response(
+        content=content,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"inline; filename=\"tech_card.pdf\"; filename*=UTF-8''{encoded}",
         },
     )
 

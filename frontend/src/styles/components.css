@@ -12,6 +12,8 @@
 .status-badge--draft { background: #f1f5f9; color: #475569; }
 .status-badge--pending_approval { background: #fef3c7; color: #92400e; }
 .status-badge--published { background: #d1fae5; color: #065f46; }
+.status-badge--editing { background: #fef3c7; color: #92400e; }
+.status-badge--approved { background: #d1fae5; color: #065f46; }
 .status-badge--archived { background: #e2e8f0; color: #64748b; }
 .status-badge--assigned { background: #dbeafe; color: #1e40af; }
 .status-badge--in_progress { background: #e0e7ff; color: #3730a3; }

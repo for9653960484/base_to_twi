@@ -8,7 +8,10 @@ from app.shared.schemas import ContentStatus, MaintenanceType, TimestampMixin
 
 class WorkItem(BaseModel):
     order: int
-    description: str
+    work_type: str = ""
+    location: str = ""
+    description: str = ""
+    quantity: str = ""
     tools: list[str] = Field(default_factory=list)
     safety: list[str] = Field(default_factory=list)
     control_params: dict[str, Any] = Field(default_factory=dict)

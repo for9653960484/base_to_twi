@@ -1,4 +1,4 @@
-export type ContentStatus = 'draft' | 'pending_approval' | 'published' | 'archived';
+export type ContentStatus = 'draft' | 'pending_approval' | 'published' | 'archived' | 'editing' | 'approved';
 
 export type MaintenanceType =
   | 'annual'
@@ -73,7 +73,10 @@ export interface KnowledgeSearchResponse {
 
 export interface TechCardWorkItem {
   order: number;
+  work_type?: string;
+  location?: string;
   description: string;
+  quantity?: string;
   tools: string[];
   safety: string[];
   control_params: Record<string, unknown>;

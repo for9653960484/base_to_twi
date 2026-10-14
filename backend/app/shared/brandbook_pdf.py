@@ -67,14 +67,16 @@ def _work_items_text(work_items: list[dict[str, Any]]) -> str:
     for index, item in enumerate(work_items, start=1):
         order = item.get("order") or index
         description = str(item.get("description") or "—").strip()
+        work_type = str(item.get("work_type") or "").strip()
+        location = str(item.get("location") or "").strip()
+        quantity = str(item.get("quantity") or "").strip()
         tools = ", ".join(item.get("tools") or []) or "—"
         safety = "; ".join(item.get("safety") or []) or "—"
         control = _control_text(item.get("control_params") or {})
         lines.append(
-            f"{order}. {description}\n"
-            f"Инструменты: {tools}\n"
-            f"Безопасность: {safety}\n"
-            f"Контроль: {control}"
+            f"{order}. Вид работ: {work_type or '—'}. Место: {location or '—'}. "
+            f"{description}. Количество: {quantity or '—'}. "
+            f"Инструменты: {tools}. Безопасность: {safety}. Контроль: {control}"
         )
     return "\n".join(lines)
 
@@ -227,24 +229,125 @@ def _render_from_template(template_path: Path, blocks: dict[str, Any]) -> bytes:
 
 def _work_table(pdf: FPDF, work_items: list[dict[str, Any]]) -> None:
     pdf.set_text_color(0, 0, 0)
-    pdf.set_font("Doc", "", 9)
+    pdf.set_font("Doc", "", 7)
     if not work_items:
         pdf.multi_cell(0, 6, "Не указаны", new_x="LMARGIN", new_y="NEXT")
         return
     with pdf.table(
         width=180,
-        col_widths=(10, 62, 38, 38, 32),
-        line_height=5,
+        col_widths=(8, 22, 28, 48, 16, 20, 20, 18),
+        line_height=4,
         text_align="LEFT",
         headings_style=FontFace(fill_color=(240, 244, 248)),
     ) as table:
         header = table.row()
-        for text in ("№", "Описание работ", "Инструменты", "Безопасность", "Контроль"):
+        for text in (
+            "№",
+            "Вид работ",
+            "Место работ",
+            "Описание работ",
+            "Количество",
+            "Инструменты",
+            "Безопасность",
+            "Контроль",
+        ):
             header.cell(text)
         for index, item in enumerate(work_items, start=1):
             row = table.row()
             row.cell(str(item.get("order") or index))
+            row.cell(str(item.get("work_type") or "—"))
+            row.cell(str(item.get("location") or "—"))
             row.cell(str(item.get("description") or "—"))
+            row.cell(str(item.get("quantity") or "—"))
             row.cell(", ".join(item.get("tools") or []) or "—")
             row.cell("; ".join(item.get("safety") or []) or "—")
             row.cell(_control_text(item.get("control_params") or {}))
+
+
+def render_office_document_pdf(path: Path) -> bytes:
+    """PDF по загруженному Word-файлу, чтобы в согласованную версию попали правки."""
+    import io
+
+    from docx import Document
+
+    from app.shared.safety_pdf import (
+        _fonts,
+        _header_image,
+        _write_docx_table,
+        _write_paragraph,
+    )
+
+    source = ensure_docx(path)
+    doc = Document(str(source))
+    font_path, bold_path = _fonts()
+    pdf = FPDF(orientation="P", unit="mm", format="A4")
+    pdf.set_auto_page_break(auto=True, margin=18)
+    pdf.set_margins(15, 15, 15)
+    pdf.add_font("Doc", "", str(font_path))
+    if bold_path:
+        pdf.add_font("Doc", "B", str(bold_path))
+    pdf.add_page()
+
+    image = _header_image(doc)
+    if image:
+        pdf.image(io.BytesIO(image), x=15, y=12, w=40)
+        pdf.set_y(28)
+
+    for section in doc.sections:
+        for paragraph in section.header.paragraphs:
+            _write_paragraph(pdf, paragraph.text, bold=True, bold_path=bold_path, size=11, color=BRAND_RGB)
+
+    for paragraph in doc.paragraphs:
+        heading = (paragraph.style.name or "").startswith("Heading") if paragraph.style else False
+        _write_paragraph(
+            pdf,
+            paragraph.text,
+            bold=heading,
+            bold_path=bold_path,
+            size=14 if heading else 11,
+            color=BRAND_RGB if heading else (0, 0, 0),
+        )
+
+    for table in doc.tables:
+        _write_docx_table(pdf, table)
+
+    return bytes(pdf.output())
+
+
+def ensure_docx(path: Path) -> Path:
+    """DOCX остаётся как есть. Старый .doc переводится в DOCX через установленный Word."""
+    if path.suffix.lower() == ".docx":
+        return path
+    if path.suffix.lower() != ".doc":
+        raise ValueError("Поддерживаются файлы .doc и .docx")
+    target = path.with_name(f"{path.stem}.converted.docx")
+    if target.is_file() and target.stat().st_mtime >= path.stat().st_mtime:
+        return target
+    script = (
+        "$word = New-Object -ComObject Word.Application\n"
+        "$word.Visible = $false\n"
+        "$word.DisplayAlerts = 0\n"
+        "try {\n"
+        f"  $doc = $word.Documents.Open('{str(path).replace(chr(39), chr(39)+chr(39))}')\n"
+        f"  $doc.SaveAs('{str(target).replace(chr(39), chr(39)+chr(39))}', 16)\n"
+        "  $doc.Close()\n"
+        "} finally {\n"
+        "  $word.Quit()\n"
+        "}\n"
+    )
+    import subprocess
+    import tempfile
+
+    with tempfile.NamedTemporaryFile("w", suffix=".ps1", delete=False, encoding="utf-8-sig") as handle:
+        handle.write(script)
+        script_path = handle.name
+    completed = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script_path],
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    Path(script_path).unlink(missing_ok=True)
+    if completed.returncode != 0 or not target.is_file():
+        raise RuntimeError(completed.stderr.strip() or "Word не смог открыть файл .doc")
+    return target

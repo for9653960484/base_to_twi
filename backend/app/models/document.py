@@ -9,7 +9,7 @@ from app.core.database import Base
 from app.models.base import TimestampMixin
 
 CONTENT_STATUS = ENUM(
-    "draft", "pending_approval", "published", "archived",
+    "draft", "pending_approval", "published", "archived", "editing", "approved",
     name="content_status", create_type=False,
 )
 AI_PROCESSING_STATUS = ENUM(

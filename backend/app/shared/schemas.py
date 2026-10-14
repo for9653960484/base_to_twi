@@ -11,6 +11,8 @@ class ContentStatus(str, Enum):
     PENDING_APPROVAL = "pending_approval"
     PUBLISHED = "published"
     ARCHIVED = "archived"
+    EDITING = "editing"
+    APPROVED = "approved"
 
 
 class MaintenanceType(str, Enum):

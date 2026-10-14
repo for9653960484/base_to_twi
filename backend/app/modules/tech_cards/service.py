@@ -6,13 +6,13 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import AppException, NotFoundError
 from app.models.brandbook import BrandbookTemplate
 from app.models.equipment import Equipment
 from app.models.tech_card import TechCard
 from app.modules.tech_cards.schemas import TechCardCreate, TechCardResponse, TechCardUpdate
 from app.shared.brandbook_export import ensure_default_tech_card_template, render_tech_card_docx
-from app.shared.brandbook_pdf import render_tech_card_pdf
+from app.shared.brandbook_pdf import render_office_document_pdf, render_tech_card_pdf
 from app.shared.schemas import ContentStatus, MaintenanceType, PaginatedResponse
 
 MAINTENANCE_TYPE_ORDER: dict[str, int] = {
@@ -119,6 +119,10 @@ class TechCardService:
 
     async def export_docx(self, tech_card_id: UUID) -> tuple[bytes, str]:
         card, eq_name = await self._fetch_row(tech_card_id)
+        edited = self._edited_file(card)
+        if edited is not None:
+            filename = str((card.custom_attributes or {}).get("edited_name") or edited.name)
+            return edited.read_bytes(), filename
         template_path = await self._active_template_path()
         content = render_tech_card_docx(
             Path(template_path),
@@ -132,15 +136,71 @@ class TechCardService:
 
     async def export_pdf(self, tech_card_id: UUID) -> tuple[bytes, str]:
         card, eq_name = await self._fetch_row(tech_card_id)
-        content = render_tech_card_pdf(
-            equipment_name=eq_name or str(card.equipment_id),
+        content = await self._pdf_bytes(card, eq_name)
+        filename = f"{self._safe_filename(card, tech_card_id)}.pdf"
+        return content, filename
+
+    async def save_edited_file(self, tech_card_id: UUID, filename: str, content: bytes) -> TechCardResponse:
+        card, eq_name = await self._fetch_row(tech_card_id)
+        ext = Path(filename or "").suffix.lower()
+        if ext not in {".doc", ".docx"}:
+            raise AppException("Нужен файл Word .doc или .docx", "UNSUPPORTED_FILE")
+        if not content:
+            raise AppException("Файл пустой", "EMPTY_FILE")
+        if len(content) > 20 * 1024 * 1024:
+            raise AppException("Файл больше 20 МБ", "FILE_TOO_LARGE")
+        from app.core.config import settings
+
+        relative = f"tech_cards/{tech_card_id}/edited{ext}"
+        dest = Path(settings.storage_local_path_resolved) / relative
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(content)
+        attrs = dict(card.custom_attributes or {})
+        attrs["edited_file"] = relative
+        attrs["edited_name"] = Path(filename).name
+        card.custom_attributes = attrs
+        card.status = ContentStatus.EDITING.value
+        await self.db.flush()
+        await self.db.refresh(card)
+        return _to_response(card, eq_name)
+
+    async def form_pdf(self, tech_card_id: UUID) -> tuple[bytes, str]:
+        card, eq_name = await self._fetch_row(tech_card_id)
+        edited = self._edited_file(card)
+        try:
+            content = await self._pdf_bytes(card, eq_name)
+        except Exception as exc:
+            if edited is None:
+                raise
+            raise AppException(
+                "Не удалось сформировать PDF из загруженного файла. Сохраните его в Word как .docx и загрузите снова.",
+                "DOC_CONVERT_FAILED",
+            ) from exc
+        card.status = ContentStatus.APPROVED.value
+        await self.db.flush()
+        filename = f"{self._safe_filename(card, tech_card_id)}.pdf"
+        return content, filename
+
+    async def _pdf_bytes(self, card: TechCard, equipment_name: str) -> bytes:
+        edited = self._edited_file(card)
+        if edited is not None:
+            return render_office_document_pdf(edited)
+        return render_tech_card_pdf(
+            equipment_name=equipment_name or str(card.equipment_id),
             title=card.title,
             maintenance_type=card.maintenance_type,
             work_items=card.work_items or [],
             template_path=await self._uploaded_template_path(),
         )
-        filename = f"{self._safe_filename(card, tech_card_id)}.pdf"
-        return content, filename
+
+    def _edited_file(self, card: TechCard) -> Path | None:
+        relative = str((card.custom_attributes or {}).get("edited_file") or "")
+        if not relative:
+            return None
+        from app.core.config import settings
+
+        path = Path(settings.storage_local_path_resolved) / relative
+        return path if path.is_file() else None
 
     @staticmethod
     def _safe_filename(card: TechCard, tech_card_id: UUID) -> str:

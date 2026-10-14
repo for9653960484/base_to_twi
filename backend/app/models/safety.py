@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 
 CONTENT_STATUS = ENUM(
-    "draft", "pending_approval", "published", "archived",
+    "draft", "pending_approval", "published", "archived", "editing", "approved",
     name="content_status", create_type=False,
 )
 

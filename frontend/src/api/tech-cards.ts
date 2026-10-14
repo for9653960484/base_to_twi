@@ -21,4 +21,13 @@ export const techCardsApi = {
     const base = apiClient.defaults.baseURL || '/api/v1';
     return `${base}/tech-cards/export/${id}?format=docx`;
   },
+
+  uploadEdited: (id: string, file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return apiClient.postForm<TechCard>(`/tech-cards/${id}/edited-file`, form);
+  },
+
+  formPdf: (id: string) =>
+    apiClient.post<Blob>(`/tech-cards/${id}/form-pdf`, null, { responseType: 'blob' }),
 };

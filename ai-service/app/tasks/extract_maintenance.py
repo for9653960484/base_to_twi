@@ -9,6 +9,7 @@
 
 import json
 import logging
+import re
 from uuid import uuid4
 
 from sqlalchemy import text
@@ -42,7 +43,10 @@ USER_PROMPT = """На основе приведённой технической
     "work_items": [
       {{
         "order": 1,
-        "description": "<подробное описание операции>",
+        "work_type": "<вид работ: осмотр, очистка, смазка, замена масла, регулировка>",
+        "location": "<узел или деталь, если указаны>",
+        "description": "<что сделать: способ выполнения, без повторения периода карты>",
+        "quantity": "<количество, если указано, иначе пустая строка>",
         "tools": ["<инструмент 1>", "<инструмент 2>"],
         "safety": ["<мера безопасности>"],
         "control_params": {{}}
@@ -53,11 +57,17 @@ USER_PROMPT = """На основе приведённой технической
 
 Правила:
 - Включай только реально описанные работы — не придумывай операции.
+- "work_type" — вид работ. Период карты сюда не писать: для ежемесячной карты не нужно «один раз в месяц».
+- "location" — место работ: узел или деталь.
+- "description" — какие действия выполнить. Не повторяй в нём период карты.
+- "quantity" — количество смазки или материала, если оно есть в тексте.
 - "tools" — конкретный инструмент или СИЗ, упомянутый в тексте.
 - "safety" — обязательные меры безопасности для операции.
 - "control_params" — словарь измеряемых параметров: {{"напряжение": "220 В"}}, или пустой объект.
 - order — порядковый номер начиная с 1.
 - Ежедневный или сменный осмотр, проверка перед пуском, смазка по графику, еженедельное, ежемесячное, квартальное, полугодовое и годовое обслуживание — это регламенты ТО. На каждый такой период нужна отдельная карта.
+- Таблица или перечень смазки — тоже регламент. Каждая строка с местом смазки и периодичностью становится отдельной работой в карте этого периода: «каждый день» и «ежедневно» — daily, «раз в неделю» — weekly, «один раз в месяц» и «раз в месяц» — monthly, «раз в квартал» — quarterly, «каждые полгода» и «раз в полгода» — semi_annual, «раз в год» и «ежегодно» — annual. Если у одного места указаны и периодичность смазки, и отдельный срок замены масла, это две разные работы.
+- Не сокращай перечни. Каждый нумерованный пункт осмотра и каждая строка графика смазки — отдельный элемент work_items. Не объединяй разные узлы в одну формулировку.
 - Пустой массив допустим только если в тексте нет ни одного периодического осмотра, смазки или обслуживания.
 
 Документ: {title}
@@ -235,6 +245,13 @@ SCHEDULE_MARKERS = (
     "профилактическое техническое обслуживание",
     "технический осмотр",
     "карта смазки",
+    "таблица смазки",
+    "график смазки",
+    "места смазки",
+    "периодичность",
+    "один раз в",
+    "масляной ванне",
+    "заливного отверстия",
 )
 SCHEDULE_WEIGHTS = (
     ("ежедневн", 4),
@@ -245,6 +262,13 @@ SCHEDULE_WEIGHTS = (
     ("годовое техническ", 3),
     ("годовой техническ", 3),
     ("годового техническ", 3),
+    ("периодичност", 4),
+    ("один раз в", 4),
+    ("места смазки", 4),
+    ("таблица смазки", 4),
+    ("график смазки", 4),
+    ("масляной ванне", 4),
+    ("заливного отверстия", 4),
 )
 
 
@@ -314,7 +338,7 @@ def select_prompt_text(full_text: str) -> str:
         return full_text
 
     spans = _marker_spans(
-        full_text, SCHEDULE_MARKERS, before=400, after=18_000, cluster_gap=4_500
+        full_text, SCHEDULE_MARKERS, before=2_000, after=12_000, cluster_gap=4_500
     )
     ranked = sorted(
         ((start, end, _span_score(full_text[start:end])) for start, end, _count in spans),
@@ -383,13 +407,291 @@ def _parse_llm_response(raw: str) -> list[dict]:
                 continue
             cleaned_items.append({
                 "order": int(wi.get("order", idx + 1)),
+                "work_type": str(wi.get("work_type", "")).strip(),
+                "location": str(wi.get("location", "")).strip(),
                 "description": str(wi.get("description", "")).strip(),
+                "quantity": str(wi.get("quantity", "")).strip(),
                 "tools": [str(t) for t in wi.get("tools", []) if t],
                 "safety": [str(s) for s in wi.get("safety", []) if s],
                 "control_params": wi.get("control_params", {}) if isinstance(wi.get("control_params"), dict) else {},
             })
         result.append({"maintenance_type": mt, "title": title, "work_items": cleaned_items})
     return result
+
+
+LUBE_PROMPT = """Ниже фрагмент руководства со смазкой оборудования. Составь технологические карты только по этому фрагменту.
+
+Каждая строка таблицы смазки и каждый нумерованный пункт с периодичностью — отдельная работа.
+Не объединяй разные узлы. Не добавляй узлы, которых нет в тексте.
+
+Период карты:
+- каждый день, ежедневно, раз в день → daily
+- раз в неделю, еженедельно → weekly
+- один раз в месяц, раз в месяц, ежемесячно, каждые два месяца → monthly
+- раз в квартал → quarterly
+- каждые полгода, раз в полгода, полгода → semi_annual
+- раз в год, ежегодно → annual
+Если у одного места указаны и периодичность смазки, и другой срок замены масла, создай две работы в картах соответствующих периодов.
+В work_type укажи вид работ: «Смазка» для периодичности смазки и «Замена масла» для срока замены масла.
+В location — узел или деталь.
+В description — способ выполнения из таблицы, без периода.
+В quantity — количество, если оно указано.
+Период в текст работы не копируй: он уже задан картой.
+
+Формат — JSON-массив:
+[
+  {{
+    "maintenance_type": "<annual|semi_annual|quarterly|monthly|weekly|daily>",
+    "title": "<период и слово Смазка>",
+    "work_items": [
+      {{
+        "order": 1,
+        "work_type": "<Смазка или Замена масла>",
+        "location": "<узел или деталь>",
+        "description": "<способ выполнения без периода>",
+        "quantity": "<количество или пустая строка>",
+        "tools": [],
+        "safety": [],
+        "control_params": {{}}
+      }}
+    ]
+  }}
+]
+
+Текст:
+---
+{text}
+---"""
+
+LUBE_MARKERS = (
+    "периодичность",
+    "места смазки",
+    "таблица смазки",
+    "график смазки",
+    "один раз в",
+    "масляной ванне",
+)
+
+
+def select_lubrication_text(full_text: str) -> str:
+    """Фрагменты с графиком смазки, без глав осмотра."""
+    spans = _marker_spans(
+        full_text, LUBE_MARKERS, before=2_500, after=3_500, cluster_gap=1_500
+    )
+    period_words = ("месяц", "день", "недел", "полгод", "пол года", "квартал")
+    kept: list[tuple[int, int]] = []
+    for start, end, _count in spans:
+        fragment = full_text[start:end]
+        low = fragment.lower()
+        if ("смаз" in low or "масл" in low) and any(word in low for word in period_words):
+            kept.append((start, end))
+    if not kept:
+        return ""
+    kept.sort()
+    merged: list[tuple[int, int]] = []
+    for start, end in kept:
+        if merged and start <= merged[-1][1] + 200:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+        else:
+            merged.append((start, end))
+    parts = [full_text[start:end].strip() for start, end in merged if end > start]
+    text = "\n\n[...]\n\n".join(parts)
+    return text[:20_000]
+
+
+def _cards_from_lubrication_table(fragment: str) -> list[dict]:
+    """Строки таблицы смазки: вид работ, узел и способ — без повторения периода карты."""
+    flat = re.sub(r"\s+", " ", fragment)
+    header = flat.lower().find("место смазки")
+    if header >= 0:
+        flat = flat[header:]
+    periods = (
+        ("один месяц, затем каждые два месяца", "monthly", "Замена масла"),
+        ("каждые два месяца", "monthly", "Замена масла"),
+        ("один раз в месяц", "monthly", "Смазка"),
+        ("раз в месяц", "monthly", "Смазка"),
+        ("каждые полгода", "semi_annual", "Замена масла"),
+        ("каждые пол года", "semi_annual", "Замена масла"),
+        ("полгода", "semi_annual", "Замена масла"),
+        ("пол года", "semi_annual", "Замена масла"),
+        ("каждый день", "daily", "Смазка"),
+        ("раз в день", "daily", "Смазка"),
+        ("раз в неделю", "weekly", "Смазка"),
+        ("раз в квартал", "quarterly", "Смазка"),
+        ("раз в год", "annual", "Замена масла"),
+        ("ежегодно", "annual", "Замена масла"),
+    )
+    titles = {
+        "daily": "Ежедневная смазка",
+        "weekly": "Еженедельная смазка",
+        "monthly": "Ежемесячная смазка",
+        "quarterly": "Квартальная смазка",
+        "semi_annual": "Полугодовая смазка",
+        "annual": "Годовая смазка",
+    }
+    buckets: dict[str, list[dict]] = {}
+    pieces = re.split(r"(?:(?<=\s)|^)(\d{1,2})\s+", flat.strip())
+    pairs = list(zip(pieces[1::2], pieces[2::2]))
+    for number, body in pairs:
+        if not number.isdigit() or int(number) > 40 or not body.strip():
+            continue
+        place, method = _split_place_and_method(body)
+        if len(place) < 3 or place.lower().startswith("место смазки"):
+            continue
+        method, quantity = _split_quantity(method)
+        low = body.lower()
+        seen_phrases: set[str] = set()
+        for phrase, maintenance_type, work_type in periods:
+            if phrase not in low or phrase in seen_phrases:
+                continue
+            seen_phrases.add(phrase)
+            low = low.replace(phrase, " ", 1)
+            buckets.setdefault(maintenance_type, []).append({
+                "order": len(buckets.get(maintenance_type, [])) + 1,
+                "work_type": work_type,
+                "location": place,
+                "description": method or work_type,
+                "quantity": quantity,
+                "tools": [],
+                "safety": [],
+                "control_params": {},
+            })
+    cards = []
+    for maintenance_type, items in buckets.items():
+        if not items:
+            continue
+        cards.append({
+            "maintenance_type": maintenance_type,
+            "title": titles[maintenance_type],
+            "work_items": items,
+        })
+    return cards
+
+
+def _split_place_and_method(body: str) -> tuple[str, str]:
+    parts = re.split(
+        r"\b(извлечь|открыть|посредством|нажать)\b",
+        body,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )
+    place = re.sub(r"\s+", " ", parts[0]).strip(" -.,;:")
+    if len(parts) == 1:
+        return place, ""
+    method = f"{parts[1]}{parts[2]}" if len(parts) > 2 else parts[1]
+    return place, re.sub(r"\s+", " ", method).strip(" -.,;:")
+
+
+def _split_quantity(method: str) -> tuple[str, str]:
+    """Отделяет количество смазки от способа. Период в способ не входит."""
+    cleaned = method
+    for phrase, _maintenance_type, _work_type in (
+        ("один месяц, затем каждые два месяца", "", ""),
+        ("каждые два месяца", "", ""),
+        ("один раз в месяц", "", ""),
+        ("раз в месяц", "", ""),
+        ("каждые полгода", "", ""),
+        ("каждые пол года", "", ""),
+        ("полгода", "", ""),
+        ("пол года", "", ""),
+        ("каждый день", "", ""),
+        ("раз в день", "", ""),
+        ("раз в неделю", "", ""),
+        ("раз в квартал", "", ""),
+        ("раз в год", "", ""),
+        ("ежегодно", "", ""),
+    ):
+        cleaned = re.sub(re.escape(phrase), " ", cleaned, flags=re.IGNORECASE)
+    quantity = ""
+    quantity_match = re.search(r"(?:^|\s)(Л|примерное)(?:\s|$)", cleaned)
+    if quantity_match:
+        quantity = quantity_match.group(1)
+        cleaned = f"{cleaned[:quantity_match.start()]} {cleaned[quantity_match.end():]}"
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" -.,;:")
+    return cleaned, quantity
+
+
+def _lubrication_cards(full_text: str) -> list[dict]:
+    fragment = select_lubrication_text(full_text)
+    if len(fragment) < 200:
+        return []
+    parsed = _cards_from_lubrication_table(fragment)
+    if parsed:
+        logger.info("График смазки разобран по таблице: карт %d", len(parsed))
+        return parsed
+    raw = complete_sync(
+        LUBE_PROMPT.format(text=fragment),
+        system=SYSTEM_PROMPT,
+        model_tier="heavy",
+        max_tokens=6_000,
+        temperature=0.1,
+    )
+    logger.info("График смазки, первые 300 знаков ответа: %s", raw[:300].replace("\n", " "))
+    return _parse_llm_response(raw)
+
+
+def _work_identity(item: dict) -> str:
+    location = str(item.get("location") or "").strip().lower()
+    work_type = str(item.get("work_type") or "").strip().lower()
+    if location and work_type:
+        return f"{work_type}|{location}"
+    return ""
+
+
+def _content_tokens(value: str) -> set[str]:
+    return set(re.findall(r"[а-яёa-z0-9]{5,}", value.lower()))
+
+
+def _period_key(value: str) -> str:
+    low = value.lower()
+    for phrase, _maintenance_type in (
+        ("каждые два месяца", "monthly"),
+        ("один раз в месяц", "monthly"),
+        ("раз в месяц", "monthly"),
+        ("каждые полгода", "semi_annual"),
+        ("каждые пол года", "semi_annual"),
+        ("каждый день", "daily"),
+        ("раз в день", "daily"),
+        ("раз в неделю", "weekly"),
+        ("раз в квартал", "quarterly"),
+        ("раз в год", "annual"),
+    ):
+        if phrase in low:
+            return phrase
+    return ""
+
+
+def _merge_card_lists(base: list[dict], extra: list[dict]) -> list[dict]:
+    """Добавляет работы графика смазки в карты тех же периодов, без повторов."""
+    by_type = {card["maintenance_type"]: card for card in base}
+    for card in extra:
+        mt = card["maintenance_type"]
+        target = by_type.get(mt)
+        if target is None:
+            by_type[mt] = card
+            continue
+        existing = target["work_items"]
+        for item in card["work_items"]:
+            new_identity = _work_identity(item)
+            duplicate = False
+            for previous in existing:
+                old_identity = _work_identity(previous)
+                if new_identity and new_identity == old_identity:
+                    duplicate = True
+                    break
+                new_key = _period_key(item["description"])
+                old_key = _period_key(previous["description"])
+                shared = len(_content_tokens(item["description"]) & _content_tokens(previous["description"]))
+                same_period = bool(new_key) and new_key == old_key
+                if shared >= 2 and same_period:
+                    duplicate = True
+                    break
+            if duplicate:
+                continue
+            existing.append(item)
+        for index, item in enumerate(existing, start=1):
+            item["order"] = index
+    return list(by_type.values())
 
 
 # ---------------------------------------------------------------------------
@@ -442,11 +744,18 @@ def extract_maintenance_works(
         prompt = USER_PROMPT.format(title=title, text=text_for_prompt)
 
         # 3. Вызов LLM (тяжёлая модель — gpt-4o)
-        raw = complete_sync(prompt, system=SYSTEM_PROMPT, model_tier="heavy")
+        raw = complete_sync(
+            prompt,
+            system=SYSTEM_PROMPT,
+            model_tier="heavy",
+            max_tokens=12_000,
+            temperature=0.1,
+        )
         logger.info("Ответ модели, первые 400 знаков: %s", raw[:400].replace("\n", " "))
 
         # 4. Парсинг ответа
         cards = _parse_llm_response(raw)
+        cards = _merge_card_lists(cards, _lubrication_cards(full_text))
         logger.info("LLM вернул %d тех. карт", len(cards))
 
         if not cards:

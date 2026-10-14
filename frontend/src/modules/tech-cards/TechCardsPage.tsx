@@ -248,7 +248,7 @@ export function TechCardsPage() {
             </p>
           )}
           <div style={{ marginTop: '1rem' }}>
-            <TechCardList items={data.items} />
+            <TechCardList items={data.items} equipmentId={equipmentId} />
           </div>
         </>
       )}
